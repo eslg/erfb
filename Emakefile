@@ -1,0 +1,5 @@
+{"src/*", [warn_export_vars, warn_exported_vars, warn_missing_spec_export, warn_untyped_record, debug_info, {outdir, "ebin"}, {i, "include"}, {i, "llib/enova/include"}, {i, "lib/enovalog/include"}]}.
+{"src/lib/*", [warn_export_vars, warn_exported_vars, warn_missing_spec_export, warn_untyped_record, debug_info, {outdir, "ebin"}, {i, "include"}, {i, "llib/enova/include"}, {i, "lib/enovalog/include"}]}.
+{"src/encodings/*", [warn_export_vars, warn_exported_vars, warn_missing_spec_export, warn_untyped_record, debug_info, {outdir, "ebin"}, {i, "include"}, {i, "llib/enova/include"}, {i, "lib/enovalog/include"}]}.
+{"src/test/*", [warn_export_vars, warn_exported_vars, warn_missing_spec_export, warn_untyped_record, debug_info, {outdir, "ebin"}, {i, "include"}, {i, "lib/enova/include"}, {i, "lib/enovalog/include"}]}.
+{"src/examples/*", [warn_export_vars, warn_exported_vars, warn_missing_spec_export, warn_untyped_record, debug_info, {outdir, "ebin"}, {i, "include"}, {i, "lib/enova/include"}, {i, "lib/enovalog/include"}]}.

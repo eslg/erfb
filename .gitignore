@@ -1,0 +1,6 @@
+.project
+.settings
+log
+ebin
+ebin_eclipse
+Mnesia*
