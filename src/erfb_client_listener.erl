@@ -24,7 +24,7 @@
 
 -record(state, {
                 listener :: port(), % Listening socket
-                acceptor :: port()  % Asynchronous acceptor's internal reference
+                acceptor :: term()  % Asynchronous acceptor's internal reference
                }).
 
 %% ====================================================================
@@ -58,7 +58,7 @@ init({Ip, Port, Backlog}) ->
             {stop, Reason}
     end.
 
--spec handle_call(any(), any(), #state{}) -> {reply, any(), #state{}} | {noreply, #state{}}.
+-spec handle_call(any(), any(), #state{}) -> {stop, {unknown_call, any()}, #state{}}.
 handle_call(Request, _From, State) ->
     {stop, {unknown_call, Request}, State}.
 
@@ -120,7 +120,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% @doc Taken from prim_inet.  We are merely copying some socket options from the
 %%      listening socket to the new client socket.
--spec set_sockopt(port(), port()) -> ok.
+-spec set_sockopt(port(), port()) -> ok | {error, Reason :: term()}.
 set_sockopt(ListSock, CliSocket) ->
     true = inet_db:register_socket(CliSocket, inet_tcp),
     case prim_inet:getopts(ListSock, [active, nodelay, keepalive, delay_send, priority, tos]) of

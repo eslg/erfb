@@ -123,6 +123,6 @@
 -record(unknown_message, {?ERFB_EVENT_BASE,
                           type :: integer()}).
 
--type(server_event() :: #server_connected{} | #server_disconnected{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}).
--type(client_event() :: #client_connected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}).
+-type(server_event() :: #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}).
+-type(client_event() :: #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}).
 

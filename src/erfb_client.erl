@@ -14,7 +14,7 @@
 start_link(Ip, Port, Backlog) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, {Ip, Port, Backlog}).
 
--spec prep_stop(term()) -> term().
+-spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
     [Module:prep_stop(State) ||

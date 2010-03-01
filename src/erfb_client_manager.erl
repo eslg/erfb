@@ -12,7 +12,7 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
--spec start_link() -> any().
+-spec start_link() -> ignore | {error, term()} | {ok, pid()}.
 start_link() -> 
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
@@ -23,7 +23,7 @@ start_client() ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec prep_stop(term()) -> term().
+-spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
     [Module:prep_stop(Pid, State) ||

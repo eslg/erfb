@@ -13,14 +13,14 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
--spec prep_stop(term()) -> term().
+-spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
     [Module:prep_stop(State) ||
        {_, _, supervisor, [Module]} <- supervisor:which_children(?MODULE),
        lists:member({prep_stop, 1}, Module:module_info(exports))].
 
--spec init(any()) -> {ok, {tuple(), [tuple()]}}.
+-spec init([]) -> {ok, {{one_for_one, 1, 10}, [tuple(),...]}}.
 init([]) ->
     Listener = {erfb_server_listener_manager, 
                 {erfb_server_listener_manager, start_link, []},

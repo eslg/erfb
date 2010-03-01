@@ -16,7 +16,7 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec code() -> integer().
+-spec code() -> -239.
 code() -> -239.
 
 -spec init() -> {ok, #state{}}.
@@ -46,7 +46,7 @@ read(#pixel_format{bits_per_pixel = BPP},
                                           bitmask= Mask}},
      Read, Rest, State}.
 
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+-spec write(#pixel_format{}, #box{}, #cursor_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(#pixel_format{bits_per_pixel = BPP},
       Box = #box{width = W, height = H},
       Data = #cursor_data{pixels = Pixels,

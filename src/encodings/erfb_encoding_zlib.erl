@@ -18,7 +18,7 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec code() -> integer().
+-spec code() -> 6.
 code() -> 6.
 
 -spec init() -> {ok, #state{}}.
@@ -29,7 +29,7 @@ init() ->
                 state       = undefined,
                 raw_state   = RawState}}.
 
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, <<_:32,_:_*8>>, Rest::binary(), #state{}}.
 read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
                     state       = ZState,
@@ -56,7 +56,7 @@ read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
     %%      need to read more bytes from the socket.  If it needs that, then it
     %%      fails.  So, we don't give it the Socket.
     {ok, Rect, _, _, NewRawState} =
-        erfb_encoding_raw:read(PF, Box, bstr:bstr(Decompressed), undefined, RawState),
+        erfb_encoding_raw:read(PF, Box, bstr:bstr(Decompressed), Socket, RawState),
     {ok,
      Rect#rectangle{encoding = ?MODULE},
      <<Length:4/unit:8, RectBytes/binary>>,
@@ -66,7 +66,7 @@ read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("ZLIB reader starting for ~p.  Not enough bytes~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+-spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, <<_:32,_:_*8>>, #state{}} | {error, invalid_data, #state{}}.
 write(PF, Box, Data,
       State = #state{zstream    = Z,
                      state      = ZState,

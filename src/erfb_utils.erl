@@ -102,7 +102,7 @@ ceiling(X) ->
         _ -> T
     end.
 
--spec timestamp() -> integer().
+-spec timestamp() -> non_neg_integer().
 timestamp() ->
     {Mgs,S,Ms} = erlang:now(),
     Mgs * 1000000000000 + S * 1000000 + Ms.

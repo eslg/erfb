@@ -5,7 +5,7 @@
 -author('Fernando Benavides <fbenavides@novamens.com>').
 
 -export([start_link/0]).
--export([subscribe/2, subscribe_link/2, unsubscribe/1, subscriptions/0]).
+-export([subscribe/2, subscribe_link/2, unsubscribe/2, subscriptions/0]).
 -export([notify/1]).
 
 -include("erfblog.hrl").
@@ -27,9 +27,9 @@ subscribe_link(EventHandler, InitArgs) ->
 subscribe(EventHandler, InitArgs) ->
     gen_event:add_handler(?MODULE, EventHandler, InitArgs).
 
--spec unsubscribe(event_handler()) -> term() | {error, module_not_found} | {'EXIT', term()}.
-unsubscribe(EventHandler) ->
-    gen_event:delete_handler(?MODULE, EventHandler).
+-spec unsubscribe(event_handler(), term()) -> term() | {error, module_not_found} | {'EXIT', term()}.
+unsubscribe(EventHandler, Args) ->
+    gen_event:delete_handler(?MODULE, EventHandler, Args).
 
 -spec subscriptions() -> [event_handler()].
 subscriptions() ->

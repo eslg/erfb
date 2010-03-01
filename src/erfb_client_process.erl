@@ -38,9 +38,9 @@ prep_stop(Server, Reason) ->
     client_disconnected(Server, Reason).
 
 %% -- Client -> Server messages ---------------------------------------
--spec send_event(fsmref(), server_event()) -> ok.
+-spec send_event(fsmref(), client_event()) -> ok.
 send_event(Client, Event) ->
-    gen_fsm:sync_send_event(Client, Event).
+    ok = gen_fsm:sync_send_event(Client, Event).
 
 -spec set_pixel_format(fsmref(), #pixel_format{}) -> ok.
 set_pixel_format(Client, PixelFormat) ->
@@ -74,25 +74,20 @@ client_disconnected(Server, Reason) ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec init(integer()) -> {ok, atom(), #state{}} | {ok, atom(), #state{}, integer() | infinity} | ignore | {stop, term()}.
+-spec init([]) -> {ok, wait_for_socket, #state{}, ?FSM_TIMEOUT}.
 init([]) ->
     process_flag(trap_exit, true),
-    case erfb_encoding_raw:init() of
-        {ok, State} ->
-            {ok, wait_for_socket,
-             #state{encodings = [{erfb_encoding_raw,
-                                  erfb_encoding_raw:code(),
-                                  State}]}, ?FSM_TIMEOUT};
-        Error ->
-            ?ERROR("Couldn't start raw encoding: ~p~n", [Error]),
-            {stop, Error}
-    end.
+    {ok, State} = erfb_encoding_raw:init(),
+    {ok, wait_for_socket,
+     #state{encodings = [{erfb_encoding_raw,
+                          erfb_encoding_raw:code(),
+                          State}]}, ?FSM_TIMEOUT}.
 
 %% ASYNC EVENTS -------------------------------------------------------
 -spec wait_for_socket(term(), #state{}) -> async_state_result().
 wait_for_socket({socket_ready, Socket}, State) ->
     % Now we own the socket
-    inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+    ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
     
     % We register the process
     {ok, {{IP1, IP2, IP3, IP4}, PeerPort}} = inet:peername(Socket),
@@ -262,7 +257,7 @@ wait_for_server_init(Event, State) ->
     ?ERROR("Unexpected Event: ~p~n", [Event]),
     {stop, {unexpected_event, Event}, State}.
 
--spec running(term(), #state{}) -> async_state_result().
+-spec running({'data',<<_:8,_:_*8>>}, #state{}) -> {next_state, running, #state{}}.
 running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/binary>>}, State) ->
     <<Length:2/unit:8, Rest/binary>> = FramebufferUpdate,
     {Rectangles, BytesRead, NextMessage, NewState} = read_rectangles(Length, Rest, State),
@@ -522,9 +517,9 @@ handle_sync_event(Event, _From, StateName, StateData) ->
 -spec handle_info(term(), atom(), #state{}) -> async_state_result().
 handle_info({tcp, Socket, Bin}, StateName, #state{socket = Socket} = StateData) ->
     % Flow control: enable forwarding of next TCP message
-    inet:setopts(Socket, [{active, false}]),
+    ok = inet:setopts(Socket, [{active, false}]),
     Result = ?MODULE:StateName({data, Bin}, StateData),
-    inet:setopts(Socket, [{active, once}]),
+    ok = inet:setopts(Socket, [{active, once}]),
     Result;
 
 handle_info({tcp_closed, Socket}, _StateName,
@@ -556,13 +551,13 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
--spec client_init(#state{}) -> async_state_result().
+-spec client_init(#state{}) -> {'next_state','wait_for_server_init',#state{}, ?FSM_TIMEOUT}.
 client_init(State = #state{socket = S}) ->
     ok = gen_tcp:send(S, <<1>>), %%NOTE: Allways shared (we're just broadcasting)
     ?DEBUG("Client Init sent~n", []),
     {next_state, wait_for_server_init, State, ?FSM_TIMEOUT}.
 
--spec read_rectangles(integer(), binary(), #state{}) -> {Result :: [#rectangle{}], Read :: binary(), Rest :: binary(), NewState :: #state{}}.
+-spec read_rectangles(pos_integer(), binary(), #state{}) -> {Result :: [#rectangle{}], Read :: binary(), Rest :: binary(), NewState :: #state{}}.
 read_rectangles(Count, Stream, State) ->
     try
         read_rectangles(Count, Stream, State, <<>>, [])

@@ -43,33 +43,22 @@
               text = ""                         :: string(),
               args = []                         :: [term()]}).
 
--define(LOG(LOGLevel, LOGStr, LOGArgs, LOGStack),
-        try erlang:apply(
-              error_logger,
-              case LOGLevel of
-                  ?LOG_LEVEL_FATAL -> error_report;
-                  ?LOG_LEVEL_ERROR -> error_report;
-                  ?LOG_LEVEL_WARN ->  warning_report;
-                  _ ->                info_report
-              end,
-              [#log{module      = ?MODULE,
-                    line        = ?LINE,
-                    stacktrace  = LOGStack,
-                    text        = LOGStr,
-                    args        = LOGArgs}]) of
-            ok ->
-                ok;
-            _ ->
-                error_logger:error_msg("Error trying to log a message:~p~n",
-                                       [{LOGStr, LOGArgs}])
+-define(LOG(LOGLevel, LOGFun, LOGStr, LOGArgs, LOGStack),
+        try
+            ok = error_logger:LOGFun(LOGLevel,
+                                     #log{module      = ?MODULE,
+                                          line        = ?LINE,
+                                          stacktrace  = LOGStack,
+                                          text        = LOGStr,
+                                          args        = LOGArgs})
         catch
-            _:_ ->
+            _ ->
                 error_logger:error_msg("Exception trying to log a message:~p~n",
                                        [{LOGStr, LOGArgs}])
         end.
--define(DEBUG(Str, Args), ?LOG(?LOG_LEVEL_DEBUG, Str, Args, [])).
--define(TRACE(Str, Args), ?LOG(?LOG_LEVEL_TRACE, Str, Args, [])).
--define(INFO(Str, Args),  ?LOG(?LOG_LEVEL_INFO,  Str, Args, [])).
--define(WARN(Str, Args),  ?LOG(?LOG_LEVEL_WARN,  Str, Args, [])).
--define(ERROR(Str, Args), ?LOG(?LOG_LEVEL_ERROR, Str, Args, erlang:get_stacktrace())).
--define(FATAL(Str, Args), ?LOG(?LOG_LEVEL_FATAL, Str, Args, erlang:get_stacktrace())).
+-define(DEBUG(Str, Args), ?LOG(?LOG_LEVEL_DEBUG, info_report,   Str, Args, [])).
+-define(TRACE(Str, Args), ?LOG(?LOG_LEVEL_TRACE, info_report,   Str, Args, [])).
+-define(INFO(Str, Args),  ?LOG(?LOG_LEVEL_INFO,  info_report,   Str, Args, [])).
+-define(WARN(Str, Args),  ?LOG(?LOG_LEVEL_WARN,  warning_report,Str, Args, [])).
+-define(ERROR(Str, Args), ?LOG(?LOG_LEVEL_ERROR, error_report,  Str, Args, erlang:get_stacktrace())).
+-define(FATAL(Str, Args), ?LOG(?LOG_LEVEL_FATAL, error_report,  Str, Args, erlang:get_stacktrace())).

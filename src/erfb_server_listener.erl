@@ -25,13 +25,13 @@
                 session   :: #session{},  % Session description
                 encodings :: [atom()],    % Supported encodings
                 listener  :: port(),      % Listening socket
-                acceptor  :: port()       % Asynchronous acceptor's internal reference
+                acceptor  :: term()       % Asynchronous acceptor's internal reference
                }).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
--spec start_link(#session{}, [atom()], ip(), integer(), integer()) -> {ok, pid()}.
+-spec start_link(#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}.
 start_link(Session, Encodings, Ip, Port, Backlog) -> 
     ?INFO("Starting RFB Server Listener on ~p for:~n\t~p~n", [Port, Session]),
     gen_server:start_link(?MODULE, {Session, Encodings, Ip, Port, Backlog}, []).
@@ -49,7 +49,7 @@ prep_stop(Listener, Reason) ->
 %% ====================================================================
 %% Callback functions
 %% ====================================================================
--spec init([#session{} | integer()]) -> {ok, #state{}} | {stop, term()}.
+-spec init({#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()}) -> {ok, #state{}} | {stop, atom()}.
 init({Session, Encodings, Ip, Port, Backlog}) ->
     process_flag(trap_exit, true),
     Opts = [binary,
@@ -123,7 +123,7 @@ handle_info({inet_async, ListSock, Ref, Error},
 handle_info(_Info, State) ->
     {noreply, State}.
 
--spec terminate(any(), #state{}) -> any().
+-spec terminate(_, #state{}) -> ok.
 terminate(Reason, #state{session = #session{server = ServerId,
                                             client = ClientId}}) ->
     ?INFO("RFB listener terminated: ~p~n", [Reason]),
@@ -140,7 +140,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% @doc Taken from prim_inet.  We are merely copying some socket options from the
 %%      listening socket to the new server socket.
--spec set_sockopt(port(), port()) -> ok.
+-spec set_sockopt(port(), port()) -> ok | {error, Reason :: term()}.
 set_sockopt(ListSock, SrvSocket) ->
     true = inet_db:register_socket(SrvSocket, inet_tcp),
     case prim_inet:getopts(ListSock, [active, nodelay, keepalive, delay_send, priority, tos]) of

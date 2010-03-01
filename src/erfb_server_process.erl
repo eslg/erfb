@@ -37,7 +37,7 @@ prep_stop(Client, Reason) ->
     server_disconnected(Client, Reason).
 
 %% -- Server -> Client messages ---------------------------------------
--spec send_event(fsmref(), client_event()) -> ok.
+-spec send_event(fsmref(), server_event()) -> ok.
 send_event(Server, Event) ->
     gen_fsm:sync_send_event(Server, Event).
 
@@ -65,30 +65,25 @@ server_disconnected(Server, Reason) ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec init(#session{}) -> {ok, atom(), #state{}} | {ok, atom(), #state{}, integer() | infinity} | ignore | {stop, term()}.
+-spec init({undefined | #session{}, [atom()]}) -> {ok, wait_for_socket, #state{}, ?FSM_TIMEOUT}.
 init({Session, EncodingMods}) ->
     process_flag(trap_exit, true),
-    random:seed(erlang:now()),
+    _Seed = random:seed(erlang:now()),
     PreEncodings = [{EMod, EMod:code(), not_initialized} || EMod <- EncodingMods],
-    case erfb_encoding_raw:init() of
-        {ok, State} ->
-            Encodings = lists:keystore(erfb_encoding_raw, 1, PreEncodings,
-                                       {erfb_encoding_raw,
-                                        erfb_encoding_raw:code(),
-                                        State}),
-            {ok, wait_for_socket, #state{session    = Session,
-                                         encodings  = Encodings}, ?FSM_TIMEOUT};
-        Error ->
-            ?ERROR("Couldn't start raw encoding: ~p~n", [Error]),
-            {stop, Error}
-    end.
+    {ok, State} = erfb_encoding_raw:init(),
+    Encodings = lists:keystore(erfb_encoding_raw, 1, PreEncodings,
+                               {erfb_encoding_raw,
+                                erfb_encoding_raw:code(),
+                                State}),
+    {ok, wait_for_socket, #state{session    = Session,
+                                 encodings  = Encodings}, ?FSM_TIMEOUT}.
 
 
 %% ASYNC EVENTS -------------------------------------------------------
 -spec wait_for_socket(term(), #state{}) -> async_state_result().
 wait_for_socket({socket_ready, Socket}, State = #state{session = Session}) ->
     % Now we own the socket
-    inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
+    ok = inet:setopts(Socket, [{active, once}, {packet, 0}, binary]),
     
     % We register the process
     {ok, {{IP1, IP2, IP3, IP4}, PeerPort}} = inet:peername(Socket),
@@ -132,8 +127,6 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
             CV ->
                 CV
         end,
-    NextState = State#state{session =
-                                (State#state.session)#session{version = Version}},
     case Version of
         invalid ->
             ?ERROR("Invalid Client Version: ~p -> ~p~n", [<<MajorStr/binary, $., MinorStr/binary>>, ClientVersion]),
@@ -147,6 +140,8 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
             {stop, normal, State};
         ?MIN_VERSION ->
             ?INFO("Version ~p handshaking...~n", [Version]),
+            NextState = State#state{session =
+                                        (State#state.session)#session{version = Version}},
             case Security of
                 [{vnc, _Password}] ->
                     ok = gen_tcp:send(S, <<?SECURITY_VNC:4/integer-unit:8>>),
@@ -157,6 +152,8 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
             end;
         _ ->
             ?INFO("Version ~p handshaking (~p)...~n", [Version, Security]),
+            NextState = State#state{session =
+                                        (State#state.session)#session{version = Version}},
             SecurityTypes = erlang:length(Security),
             SecurityCodes = <<<<(case Sec of
                                       none -> ?SECURITY_NONE;
@@ -262,7 +259,7 @@ wait_for_client_init(Event, State) ->
     ?ERROR("Unexpected Event: ~p~n", [Event]),
     {stop, {unexpected_event, Event}, State}.
 
--spec running(term(), #state{}) -> async_state_result().
+-spec running({data,<<_:8,_:_*8>>},#state{}) -> {next_state, running, #state{}}.
 running({data, <<?MSG_SET_PIXEL_FORMAT, _Padding:3/unit:8, SetPixelFormat/binary>>}, State) ->
     <<PFData:16/binary,
       NextMessage/binary>> = SetPixelFormat,
@@ -532,9 +529,9 @@ handle_sync_event(Event, _From, StateName, StateData) ->
 -spec handle_info(term(), atom(), #state{}) -> async_state_result().
 handle_info({tcp, Socket, Bin}, StateName, #state{socket = Socket} = StateData) ->
     % Flow control: enable forwarding of next TCP message
-    inet:setopts(Socket, [{active, false}]),
+    ok = inet:setopts(Socket, [{active, false}]),
     Result = ?MODULE:StateName({data, Bin}, StateData),
-    inet:setopts(Socket, [{active, once}]),
+    ok = inet:setopts(Socket, [{active, once}]),
     Result;
 
 handle_info({tcp_closed, Socket}, _StateName,
@@ -569,7 +566,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
--spec vnc_security(#state{}) -> async_state_result().
+-spec vnc_security(#state{}) -> {next_state,wait_for_vnc_response,#state{},?FSM_TIMEOUT}.
 vnc_security(State = #state{socket = S}) ->
     Challenge = << <<(random:uniform(255)):1/unit:8>> || _ <- lists:seq(1,16) >>,
     ok = gen_tcp:send(S, Challenge),
@@ -616,7 +613,7 @@ write_rectangle(PF,
             throw({stop, Error, State})
     end.
 
--spec flip_byte(binary()) -> binary().
+-spec flip_byte(<<_:8>>) -> <<_:8>>.
 flip_byte(<<B1:1/unit:1, B2:1/unit:1, B3:1/unit:1, B4:1/unit:1,
             B5:1/unit:1, B6:1/unit:1, B7:1/unit:1, B8:1/unit:1>>) ->
     <<B8:1/unit:1, B7:1/unit:1, B6:1/unit:1, B5:1/unit:1,

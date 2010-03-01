@@ -16,7 +16,7 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
--spec code() -> integer().
+-spec code() -> 5.
 code() -> 5.
 
 -spec init() -> {ok, #state{}}.
@@ -188,7 +188,7 @@ read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
               State)
     end.
 
--spec hextile_subreader(binary(), integer(), byte()) -> [#rectangle{}].
+-spec hextile_subreader(binary(), integer(), 0 | 1) -> [#rectangle{}].
 hextile_subreader(Body, PixelSize, 1) ->
     [#rectangle{box     = #box{x = X,
                                y = Y,
