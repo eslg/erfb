@@ -74,8 +74,6 @@
                        data :: binary()}).
 -record(cursor_data, {pixels    :: binary(),
                       bitmask   :: binary()}).
--type(reader() :: fun((#pixel_format{}, #box{}, binary(), port()) -> {#rectangle{}, Read::binary(), Rest::binary()})).
--type(writer() :: fun((#pixel_format{}, #box{}, term()) -> {ok, binary()} | {error, invalid_data})).
 
 %% == EVENTS ===================================================================
 -define(ERFB_EVENT_BASE, sender    = self()                 :: fsmref(),
