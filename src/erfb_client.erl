@@ -17,10 +17,13 @@
 -include("erfblog.hrl").
 -include("erfb.hrl").
 
+%% @spec start_link(ip(), integer(), integer()) -> {ok, pid()}
+%% @doc  Starts a new RFB client supervisor
 -spec start_link(ip(), integer(), integer()) -> {ok, pid()}.
 start_link(Ip, Port, Backlog) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, {Ip, Port, Backlog}).
 
+%% @hidden
 -spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
@@ -28,6 +31,7 @@ prep_stop(State) ->
        {_, _, supervisor, [Module]} <- supervisor:which_children(?MODULE),
        lists:member({prep_stop, 1}, Module:module_info(exports))].
 
+%% @hidden
 -spec init({ip(), integer(), integer()}) -> {ok, {tuple(), [tuple()]}}.
 init({Ip, Port, Backlog}) ->
     Listener    = {erfb_client_listener, 

@@ -31,11 +31,13 @@
          get_line/1, urlencode/1, urldecode/1, xmlencode/1, xmldecode/1,
          hexencode/1, hexdecode/1]).
 
+%% @type bstr(). Our main type
 -type(bstr() :: binary()).
 
 %%--------------------------------------------------------------------
-%% @spec len(bstr()) -> integer()
+%% @spec len(bstr()) -> non_neg_integer()
 %% @doc  Return the length of a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec len(bstr()) -> non_neg_integer().
 len(Str) when is_binary(Str) ->
@@ -43,8 +45,9 @@ len(Str) when is_binary(Str) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec equal(bstr(), bstr()) -> true | false
+%% @spec equal(bstr(), bstr()) -> boolean()
 %% @doc  Test if 2 strings are equal.
+%% @end
 %%--------------------------------------------------------------------
 -spec equal(bstr(), bstr()) -> boolean().
 equal(Str, Str) when is_binary(Str) ->
@@ -56,6 +59,7 @@ equal(Str, _) when is_binary(Str) ->
 %%--------------------------------------------------------------------
 %% @spec concat(bstr(), bstr()) -> bstr()
 %% @doc  Concatenate 2 strings.
+%% @end
 %%--------------------------------------------------------------------
 -spec concat(bstr(), bstr()) -> bstr().
 concat(Str1, Str2) when is_binary(Str1), is_binary(Str2) ->
@@ -63,8 +67,9 @@ concat(Str1, Str2) when is_binary(Str1), is_binary(Str2) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec nth(bstr(), integer()) -> char()
+%% @spec nth(bstr(), pos_integer()) -> char()
 %% @doc  Return the character in the nth position of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec nth(bstr(), pos_integer()) -> char().
 nth(Str, Pos) when is_binary(Str), Pos > 0, Pos =< size(Str) ->
@@ -76,6 +81,7 @@ nth(Str, Pos) when is_binary(Str), Pos > 0, Pos =< size(Str) ->
 %%--------------------------------------------------------------------
 %% @spec index(bstr(), char()) -> integer()
 %% @doc  Return the index of the first appearance of a character in a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec index(bstr(), char()) -> integer().
 index(Str, Char) when is_binary(Str), is_integer(Char) ->
@@ -91,6 +97,7 @@ index(<<>>, _Char, _N) ->
 %%--------------------------------------------------------------------
 %% @spec rindex(bstr(), char()) -> integer()
 %% @doc  Return the index of the last appearance of a character in a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec rindex(bstr(), char()) -> integer().
 rindex(Str, Char) when is_binary(Str), is_integer(Char) ->
@@ -107,8 +114,9 @@ rindex(Str, Char, Offset) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec member(bstr(), char()) -> bool()
+%% @spec member(bstr(), char()) -> boolean()
 %% @doc  Return whether the character is present in the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec member(bstr(), char()) -> boolean().
 member(Str, Char) ->
@@ -118,6 +126,7 @@ member(Str, Char) ->
 %%--------------------------------------------------------------------
 %% @spec prefix(bstr(), bstr()) -> boolean()
 %% @doc  Indicates whether a string is a prefix of another one.
+%% @end
 %%--------------------------------------------------------------------
 -spec prefix(bstr(), bstr()) -> boolean().
 prefix(Str, Prefix) when is_binary(Str), is_binary(Prefix) ->
@@ -133,6 +142,7 @@ prefix(Str, Prefix) when is_binary(Str), is_binary(Prefix) ->
 %%--------------------------------------------------------------------
 %% @spec suffix(bstr(), bstr()) -> boolean()
 %% @doc  Indicates whether a string is a suffix of another one.
+%% @end
 %%--------------------------------------------------------------------
 -spec suffix(bstr(), bstr()) -> boolean().
 suffix(Str, Suffix) when is_binary(Str), is_binary(Suffix) ->
@@ -146,10 +156,11 @@ suffix(Str, Suffix) when is_binary(Str), is_binary(Suffix) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_alpha(binary()) -> boolean()
+%% @spec is_alpha(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of alphabetic characters.
+%% @end
 %%--------------------------------------------------------------------
--spec is_alpha(binary()) -> boolean().
+-spec is_alpha(bstr()) -> boolean().
 is_alpha(<<>>) ->
     false;
 is_alpha(Str) when is_binary(Str) ->
@@ -157,17 +168,18 @@ is_alpha(Str) when is_binary(Str) ->
 is_alpha(Char) when is_integer(Char) ->
     is_alpha_char(Char).
 
-%% Determine if a character is alphabetic.
+%% @doc Determine if a character is alphabetic.
 is_alpha_char(Char) ->
     ((Char >= $A) andalso (Char =< $Z)) orelse
     ((Char >= $a) andalso (Char =< $z)).
 
 
 %%--------------------------------------------------------------------
-%% @spec is_alnum(binary()) -> boolean()
+%% @spec is_alnum(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of alphanumeric characters.
+%% @end
 %%--------------------------------------------------------------------
--spec is_alnum(binary()) -> boolean().
+-spec is_alnum(bstr()) -> boolean().
 is_alnum(<<>>) ->
     false;
 is_alnum(Str) when is_binary(Str) ->
@@ -184,10 +196,11 @@ is_alnum_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_lower(binary()) -> boolean()
+%% @spec is_lower(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of lower-case alphabetic characters.
+%% @end
 %%--------------------------------------------------------------------
--spec is_lower(binary()) -> boolean().
+-spec is_lower(bstr()) -> boolean().
 is_lower(<<>>) ->
     false;
 is_lower(Str) when is_binary(Str) ->
@@ -202,10 +215,11 @@ is_lower_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_upper(binary()) -> boolean()
+%% @spec is_upper(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of upper-case alphabetic characters.
+%% @end
 %%--------------------------------------------------------------------
--spec is_upper(binary()) -> boolean().
+-spec is_upper(bstr()) -> boolean().
 is_upper(<<>>) ->
     false;
 is_upper(Str) when is_binary(Str) ->
@@ -220,10 +234,11 @@ is_upper_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_digit(binary()) -> boolean()
+%% @spec is_digit(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of digits.
+%% @end
 %%--------------------------------------------------------------------
--spec is_digit(binary()) -> boolean().
+-spec is_digit(bstr()) -> boolean().
 is_digit(<<>>) ->
     false;
 is_digit(Str) when is_binary(Str) ->
@@ -238,10 +253,11 @@ is_digit_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_xdigit(binary()) -> boolean()
+%% @spec is_xdigit(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of hexadecimal digits.
+%% @end
 %%--------------------------------------------------------------------
--spec is_xdigit(binary()) -> boolean().
+-spec is_xdigit(bstr()) -> boolean().
 is_xdigit(<<>>) ->
     false;
 is_xdigit(Str) when is_binary(Str) ->
@@ -258,10 +274,11 @@ is_xdigit_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_blank(binary()) -> boolean()
+%% @spec is_blank(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of blank characters.
+%% @end
 %%--------------------------------------------------------------------
--spec is_blank(binary()) -> boolean().
+-spec is_blank(bstr()) -> boolean().
 is_blank(<<>>) ->
     false;
 is_blank(Str) when is_binary(Str) ->
@@ -276,10 +293,11 @@ is_blank_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_space(binary()) -> boolean()
+%% @spec is_space(bstr()) -> boolean()
 %% @doc  Determines if a string is composed of spaces or tabs.
+%% @end
 %%--------------------------------------------------------------------
--spec is_space(binary()) -> boolean().
+-spec is_space(bstr()) -> boolean().
 is_space(<<>>) ->
     false;
 is_space(Str) when is_binary(Str) ->
@@ -295,10 +313,11 @@ is_space_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_atom_as_binary(binary()) -> boolean()
+%% @spec is_atom_as_binary(bstr()) -> boolean()
 %% @doc  Determines if a string is an unquoted atom.
+%% @end
 %%--------------------------------------------------------------------
--spec is_atom_as_binary(binary()) -> boolean().
+-spec is_atom_as_binary(bstr()) -> boolean().
 is_atom_as_binary(<<>>) ->
     false;
 is_atom_as_binary(<<Char, Tail/binary>>) ->
@@ -316,9 +335,10 @@ is_atom_char(Char) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec is_x(Str::bstr(), Fun::fun()) -> boolean()
+%% @spec is_x(Str::bstr(), Fun::fun((char()) -> boolean())) -> boolean()
 %% @doc  Helper function used to check whether all the characters in a string
 %%       meet a specific criteria that is passed as a function to it.
+%% @end
 %%--------------------------------------------------------------------
 %% is_x(<<>>, _Fun, _Offset) ->
 %%     false;
@@ -351,8 +371,9 @@ is_x(<<>>, _Fun) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec insert(bstr(), integer(), bstr()) -> bstr()
+%% @spec insert(bstr(), pos_integer(), bstr()) -> bstr()
 %% @doc  Insert a string into another one at the indicated position.
+%% @end
 %%---------------------------------------------------------------------
 -spec insert(bstr(), pos_integer(), bstr()) -> bstr().
 insert(Str, Pos, Str1) when is_binary(Str), is_integer(Pos) ->
@@ -366,8 +387,9 @@ insert(Str, Pos, Str1) when is_binary(Str), is_integer(Pos) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec duplicate(bstr(), Number) -> bstr()
+%% @spec duplicate(bstr(), integer()) -> bstr()
 %% @doc  Return 'Number' copies of a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec duplicate(bstr(), integer()) -> bstr().
 duplicate(Str, Num) ->
@@ -379,8 +401,9 @@ duplicate(_Str, _Num, Acc) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec substr(bstr(), Pos) -> bstr()
+%% @spec substr(bstr(), integer()) -> bstr()
 %% @doc  Return a substring starting at position 'Pos'.
+%% @end
 %%--------------------------------------------------------------------
 -spec substr(bstr(), integer()) -> bstr().
 substr(Str, 1) when is_binary(Str) ->
@@ -393,9 +416,11 @@ substr(Str, Pos) when is_binary(Str) ->
         _ ->
             <<>>
     end.
+
 %%--------------------------------------------------------------------
 %% @spec substr(bstr(), Pos::integer(), Len::integer()) -> bstr()
 %% @doc  Return a substring starting at position 'Pos' with a length of 'Len' bytes.
+%% @end
 %%--------------------------------------------------------------------
 -spec substr(bstr(), Pos::integer(), Len::integer()) -> bstr().
 substr(Str, 1, Len) when is_binary(Str), Len =:= size(Str) ->
@@ -413,10 +438,11 @@ substr(Str, Pos, Len) when is_binary(Str) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec left(bstr(), Len) -> bstr()
+%% @spec left(bstr(), integer()) -> bstr()
 %% @doc  Return a substring of 'Len' bytes starting from the beginning of the 
 %%       string. If the string does not have enough characters, the original 
 %%       string is returned.
+%% @end
 %%--------------------------------------------------------------------
 -spec left(bstr(), integer()) -> bstr().
 left(Str, Len) when is_binary(Str), Len >= size(Str) ->
@@ -427,10 +453,11 @@ left(Str, Len) when is_binary(Str), Len >= 0 ->
 
 
 %%--------------------------------------------------------------------
-%% @spec right(bstr(), Len) -> bstr()
+%% @spec right(bstr(), integer()) -> bstr()
 %% @doc  Return a substring of 'Len' bytes starting from the end of the string.
 %%       If the string does not have enough characters, the original string is
 %%       returned.
+%% @end
 %%--------------------------------------------------------------------
 -spec right(bstr(), integer()) -> bstr().
 right(Str, Len) when is_binary(Str), Len >= size(Str) ->
@@ -442,15 +469,18 @@ right(Str, Len) when is_binary(Str), Len >= 0 ->
 
 
 %%--------------------------------------------------------------------
-%% @spec pad(bstr(), Len) -> bstr()
+%% @spec pad(bstr(), non_neg_integer()) -> bstr()
 %% @doc  Return a string of 'Len' bytes padded with spaces to the left and to the right.
+%% @end
 %%--------------------------------------------------------------------
 -spec pad(bstr(), non_neg_integer()) -> bstr().
 pad(Str, Len) when is_binary(Str), Len >= 0 ->
     pad(Str, Len, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec pad(bstr(), Len, Char) -> bstr()
+%% @spec pad(bstr(), integer(), char()) -> bstr()
 %% @doc  Return a string of 'Len' bytes padded with 'Chars' to the left and to the right.
+%% @end
 %%--------------------------------------------------------------------
 -spec pad(bstr(), integer(), char()) -> bstr().
 pad(Str, Len, Char) when is_binary(Str), Len >= 0 ->
@@ -477,15 +507,18 @@ pad(Str, Len, Char) when is_binary(Str), Len >= 0 ->
 
 
 %%--------------------------------------------------------------------
-%% @spec lpad(bstr(), Len) -> bstr()
+%% @spec lpad(bstr(), non_neg_integer()) -> bstr()
 %% @doc  Return a string of 'Len' bytes left-padded with spaces.
+%% @end
 %%--------------------------------------------------------------------
 -spec lpad(bstr(), non_neg_integer()) -> bstr().
 lpad(Str, Len) when is_binary(Str), Len >= 0 ->
     lpad(Str, Len, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec lpad(bstr(), Len, Char) -> bstr()
+%% @spec lpad(bstr(), non_neg_integer(), char()) -> bstr()
 %% @doc  Return a string of 'Len' bytes left-padded with 'Chars'.
+%% @end
 %%--------------------------------------------------------------------
 -spec lpad(bstr(), non_neg_integer(), char()) -> bstr().
 lpad(Str, Len, Char) when is_binary(Str), Len >= 0 ->
@@ -500,15 +533,18 @@ lpad(Str, Len, Char) when is_binary(Str), Len >= 0 ->
 
 
 %%--------------------------------------------------------------------
-%% @spec rpad(bstr(), Len) -> bstr()
+%% @spec rpad(bstr(), non_neg_integer()) -> bstr()
 %% @doc  Return a string of 'Len' bytes right-padded with spaces.
+%% @end
 %%--------------------------------------------------------------------
 -spec rpad(bstr(), non_neg_integer()) -> bstr().
 rpad(Str, Len) when is_binary(Str), Len >= 0 ->
     rpad(Str, Len, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec rpad(bstr(), Len, Char) -> bstr()
+%% @spec rpad(bstr(), non_neg_integer(), char()) -> bstr()
 %% @doc  Return a string of 'Len' bytes right-padded with 'Chars'.
+%% @end
 %%--------------------------------------------------------------------
 -spec rpad(bstr(), non_neg_integer(), char()) -> bstr().
 rpad(Str, Len, Char) ->
@@ -525,13 +561,16 @@ rpad(Str, Len, Char) ->
 %%--------------------------------------------------------------------
 %% @spec strip(bstr()) -> bstr()
 %% @doc  Remove all the spaces present both to the left and to the right of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec strip(bstr()) -> bstr().
 strip(Str) when is_binary(Str) ->
     strip(Str, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec strip(bstr(), Char) -> bstr()
+%% @spec strip(bstr(), char()) -> bstr()
 %% @doc  Remove all the 'Chars' present both to the left and to the right of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec strip(bstr(), char()) -> bstr().
 strip(Str, Char) when is_binary(Str), is_integer(Char) ->
@@ -541,17 +580,21 @@ strip(Str, Char) when is_binary(Str), is_integer(Char) ->
 %%--------------------------------------------------------------------
 %% @spec lstrip(bstr()) -> bstr()
 %% @doc  Remove all the spaces present to the left of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec lstrip(bstr()) -> bstr().
 lstrip(Str) when is_binary(Str) ->
     lstrip(Str, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec lstrip(bstr(), Char) -> bstr()
+%% @spec lstrip(bstr(), char()) -> bstr()
 %% @doc  Remove all the 'Chars' present to the left of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec lstrip(bstr(), char()) -> bstr().
 lstrip(Str, Char) when is_binary(Str), is_integer(Char) ->
     lstrip(Str, Char, 0).
+%% @hidden
 lstrip(Str, Char, Pos) ->
     case Str of
         <<_Head:Pos/binary, Char, _Tail/binary>> ->
@@ -566,13 +609,16 @@ lstrip(Str, Char, Pos) ->
 %%--------------------------------------------------------------------
 %% @spec rstrip(bstr()) -> bstr()
 %% @doc  Remove all the spaces present to the right of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec rstrip(bstr()) -> bstr().
 rstrip(Str) when is_binary(Str) ->
     rstrip(Str, $\s).
+
 %%--------------------------------------------------------------------
-%% @spec rstrip(bstr(), Char) -> bstr()
+%% @spec rstrip(bstr(), char()) -> bstr()
 %% @doc  Remove all the 'Chars' present to the right of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec rstrip(bstr(), char()) -> bstr().
 rstrip(Str, Char) when is_binary(Str), is_integer(Char) ->
@@ -593,6 +639,7 @@ rstrip(Str, Char, Pos) ->
 %%--------------------------------------------------------------------
 %% @spec chomp(bstr()) -> bstr()
 %% @doc  Remove all the newlines (\r and \n) present at the end of the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec chomp(bstr()) -> bstr().
 chomp(Str) when is_binary(Str) ->
@@ -613,9 +660,10 @@ chomp(Str, Pos) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec split(bstr(), Sep::char() | Sep::bstr()) -> list(bstr())
+%% @spec split(bstr(), Sep::char() | bstr()) -> list(bstr())
 %% @doc  Divide a string into a list of tokens that were originally separated
 %%       by the character 'Sep'.
+%% @end
 %%--------------------------------------------------------------------
 -spec split(bstr(), Sep::char() | bstr()) -> list(bstr()).
 split(<<>>, _Sep) ->
@@ -664,6 +712,7 @@ split_str_sep(Str, Sep, Pos, Tokens) ->
 %%--------------------------------------------------------------------
 %% @spec join(list(bstr())) -> bstr()
 %% @doc  Join a a list of strings into one string.
+%% @end
 %%--------------------------------------------------------------------
 % join(List) when is_list(List) ->
 %     join_list(List, <<>>).
@@ -688,9 +737,10 @@ join_list([], Acc) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec join(list(bstr()), Sep::char() | Sep::bstr()) -> bstr()
+%% @spec join(list(bstr()), Sep::char() | bstr()) -> bstr()
 %% @doc  Join a a list of strings into one string, adding a separator between
 %%       each string.
+%% @end
 %%--------------------------------------------------------------------
 -spec join(list(bstr()), Sep::char() | bstr()) -> bstr().
 join(List, Sep) when is_list(List) ->
@@ -717,13 +767,15 @@ join_list_sep([], _Sep, Acc) ->
 
 %%--------------------------------------------------------------------
 %% @spec join(Members :: list(bstr()),
-%%            Sep     :: char(),
+%%            Sep     :: char() | bstr(),
 %%            Esc     :: char() ) -> bstr()
 %% @doc  Join a a list of strings into one string, adding a separator between
 %%       each string and escaping both the separator and the escape char itself
-%%       with the escape char
-%%       e.g.: bstr:join([<<"1">>, <<",">>, <<"\1">>, <<"2,3">>], $,, $\) ->
-%%              <<"1,\,,\\1,2\,3">>.
+%%       with the escape char.
+%% @end
+%% E.g.:
+%%       `bstr:join([<<"1">>, <<",">>, <<"\1">>, <<"2,3">>], $,, $\) ->`
+%%       `       <<"1,\,,\\1,2\,3">>.`
 %%--------------------------------------------------------------------
 -spec join([bstr()], char() | bstr(), char()) -> bstr().
 join(Members, Sep, Esc) ->
@@ -764,6 +816,7 @@ join(Members, Sep, Esc) ->
 %%--------------------------------------------------------------------
 %% @spec lower(bstr() | char()) -> bstr() | char()
 %% @doc  Convert all the characters in a bstr to lowercase.
+%% @end
 %%--------------------------------------------------------------------
 -spec lower(bstr() | char()) -> bstr() | char().
 lower(Str) when is_binary(Str) ->
@@ -807,6 +860,7 @@ lower_copy(<<>>, Acc) ->
 %%--------------------------------------------------------------------
 %% @spec upper(bstr() | char()) -> bstr() | char()
 %% @doc  Convert all the characters in a bstr to uppercase.
+%% @end
 %%--------------------------------------------------------------------
 -spec upper(bstr() | char()) -> bstr() | char().
 upper(Str) when is_binary(Str) ->
@@ -850,6 +904,7 @@ upper_copy(<<>>, Acc) ->
 %%--------------------------------------------------------------------
 %% @spec bstr(binary() | atom() | list() | char()) -> bstr()
 %% @doc  Convert an "object" to a bstr.
+%% @end
 %%--------------------------------------------------------------------
 -spec bstr(binary() | atom() | list() | char()) -> bstr().
 bstr(Bin) when is_binary(Bin) ->
@@ -867,6 +922,7 @@ bstr(List) when is_list(List) ->
 %%--------------------------------------------------------------------
 %% @spec from_atom(atom()) -> bstr()
 %% @doc  Convert an atom to a bstr.
+%% @end
 %%--------------------------------------------------------------------
 -spec from_atom(atom()) -> bstr().
 from_atom(Atom) when is_atom(Atom) ->
@@ -875,6 +931,7 @@ from_atom(Atom) when is_atom(Atom) ->
 %%--------------------------------------------------------------------
 %% @spec to_atom(bstr()) -> atom()
 %% @doc  Convert a bstr containing a string to an Erlang atom.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_atom(bstr()) -> atom().
 to_atom(Str) when is_binary(Str) ->
@@ -884,6 +941,7 @@ to_atom(Str) when is_binary(Str) ->
 %% @spec to_existing_atom(bstr()) -> atom()
 %% @doc  Convert a bstr containing a string to an Erlang atom only if the atom
 %%       already existed (i.e. had been previously defined).
+%% @end
 %%--------------------------------------------------------------------
 -spec to_existing_atom(bstr()) -> atom().
 to_existing_atom(Str) when is_binary(Str) ->
@@ -893,6 +951,7 @@ to_existing_atom(Str) when is_binary(Str) ->
 %%--------------------------------------------------------------------
 %% @spec from_list(list()) -> bstr()
 %% @doc  Convert a list containing a string to a bstr.
+%% @end
 %%--------------------------------------------------------------------
 -spec from_list(list()) -> bstr().
 from_list(List) when is_list(List) ->
@@ -902,6 +961,7 @@ from_list(List) when is_list(List) ->
 %%--------------------------------------------------------------------
 %% @spec to_list(bstr()) -> string()
 %% @doc  Convert a bstr containing a string to an Erlang list/string.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_list(bstr()) -> [byte()].
 to_list(Str) when is_binary(Str) ->
@@ -911,6 +971,7 @@ to_list(Str) when is_binary(Str) ->
 %%--------------------------------------------------------------------
 %% @spec to_boolean(bstr()) -> boolean()
 %% @doc  Convert a bstr containing a string to an Erlang list/string.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_boolean(bstr()) -> boolean().
 to_boolean(<<"true">>) ->
@@ -922,6 +983,7 @@ to_boolean(<<"false">>) ->
 %%--------------------------------------------------------------------
 %% @spec from_integer(integer()) -> bstr()
 %% @doc  Convert an integer to a bstr in base 10 format.
+%% @end
 %%--------------------------------------------------------------------
 -spec from_integer(integer()) -> bstr().
 from_integer(I) ->
@@ -929,16 +991,18 @@ from_integer(I) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec from_integer(integer(), Base::integer()) -> bstr()
+%% @spec from_integer(integer(), pos_integer()) -> bstr()
 %% @doc  Convert an integer to a bstr in base 'n' format.
+%% @end
 %%--------------------------------------------------------------------
 -spec from_integer(integer(), 1..255) -> bstr().
 from_integer(I, Base) ->
     from_integer(I, Base, upper).
 
 %%--------------------------------------------------------------------
-%% @spec from_integer(integer(), Base::integer(), upper | lower) -> bstr()
+%% @spec from_integer(integer(), pos_integer(), upper | lower) -> bstr()
 %% @doc  Convert an integer to a bstr in base 'n' format in the specified case.
+%% @end
 %%--------------------------------------------------------------------
 -spec from_integer(integer(), 1..255, upper | lower) -> bstr().
 from_integer(I, Base, Case) when is_integer(I), is_integer(Base), Base >= 2, Base =< 1 + $Z - $A + 10 ->
@@ -986,6 +1050,7 @@ from_integer(I0, Base, BaseLetter, Acc) ->
 %% @spec to_integer(bstr()) -> integer()
 %% @doc  Convert a bstr containing a string representing a decimal number
 %%       to an integer.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_integer(bstr()) -> integer().
 to_integer(<<$-, Str/binary>>) ->
@@ -1011,10 +1076,11 @@ to_decimal_integer(Str, Offset, Acc) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec to_integer(bstr(), Base::integer()) -> integer()
+%% @spec to_integer(bstr(), pos_integer()) -> integer()
 %% @doc  Convert a bstr containing a string representing a positive number
 %%       in the specified 'Base' to an integer. 'Base' must be an integer
 %%       between 2 and 32.
+%% @end
 %%--------------------------------------------------------------------
 % Optimized version for base 10
 -spec to_integer(bstr(), 1..255) -> integer().
@@ -1069,6 +1135,7 @@ to_base_n_integer(Str, Offset, Base, Acc) ->
 %% @doc  Get the first text line from a binary string. It returns a tuple with
 %%       the first text line as the first element and the rest of the string as
 %%       the last element.
+%% @end
 %%--------------------------------------------------------------------
 -spec get_line(bstr()) -> {bstr(), bstr()}.
 get_line(Str) ->
@@ -1089,6 +1156,7 @@ get_line(Str, Offset) ->
 %%--------------------------------------------------------------------
 %% @spec urlencode(bstr()) -> bstr()
 %% @doc  Encode a bstr using the URL-encoding scheme.
+%% @end
 %%--------------------------------------------------------------------
 -spec urlencode(bstr()) -> bstr().
 urlencode(Str) when is_binary(Str) ->
@@ -1127,7 +1195,7 @@ urlencode(Str, N, Acc) ->
             list_to_binary(lists:reverse(Acc))
     end.
 
-%% Determine whether a character has to be URL-encoded.
+%% @doc Determine whether a character has to be URL-encoded.
 is_urlencoded(Char) ->
     not (((Char >= $0) andalso (Char =< $9)) orelse
          ((Char >= $A) andalso (Char =< $Z)) orelse
@@ -1135,7 +1203,7 @@ is_urlencoded(Char) ->
          (Char =:= $-) orelse (Char =:= $_) orelse
          (Char =:= $.) orelse (Char =:= $~)).
 
-%% Convert an integer between 0 and 15 to an hexadecimal character.
+%% @doc Convert an integer between 0 and 15 to an hexadecimal character.
 integer_to_hex_char(N) when N >= 0 ->
     if
         N =< 9 ->
@@ -1145,6 +1213,7 @@ integer_to_hex_char(N) when N >= 0 ->
         true ->
             erlang:error(badarg)
     end.
+%% @hidden
 integer_to_hex_char(N, lower) when N >= 0 ->
     if
         N =< 9 ->
@@ -1161,6 +1230,7 @@ integer_to_hex_char(N, upper) ->
 %%--------------------------------------------------------------------
 %% @spec urldecode(bstr()) -> bstr()
 %% @doc  Decode a bstr using the URL-encoding scheme.
+%% @end
 %%--------------------------------------------------------------------
 -spec urldecode(bstr()) -> bstr().
 urldecode(Str) ->
@@ -1199,7 +1269,7 @@ urldecode(Str, N, Acc) ->
             Acc
     end.
 
-%% Convert an hexadecimal character to an integer. If the character is not an
+%% @doc Convert an hexadecimal character to an integer. If the character is not an
 %% hexadecimal character we return a 'badarg' exception.
 hex_char_to_integer(Char) ->
     if
@@ -1222,6 +1292,7 @@ hex_char_to_integer(Char) ->
 %%                and supports non-printable characters in the ASCII range 
 %%                00h-1Fh. Bytes that are not part of a valid UTF-8 character 
 %%                are not converted at all.
+%% @end
 %%--------------------------------------------------------------------
 -spec xmlencode(bstr()) -> bstr().
 xmlencode(Str) when is_binary(Str) ->
@@ -1258,9 +1329,9 @@ xmlencode(Str, Offset, Acc) ->
             list_to_binary(lists:reverse(Acc))
     end.
 
-%% Determine whether a character has to be XML-encoded.
-%% @see http://en.wikipedia.org/wiki/UTF-8#Description
-%% @see http://www.asciitable.com/
+%% @doc Determine whether a character has to be XML-encoded. See
+%% <a href="http://en.wikipedia.org/wiki/UTF-8#Description">Wikipedia</a>, 
+%% <a href="http://www.asciitable.com/">ASCII Table</a>
 is_xmlencoded(Char) -> 
     (Char < 32) orelse (Char =:= 192) orelse (Char =:= 193) orelse (Char > 244) 
         orelse (Char =:= $&) orelse (Char =:= $<) orelse (Char =:= $>) 
@@ -1290,6 +1361,7 @@ xmlencode_char(Char) ->
 %% @spec xmldecode(bstr()) -> bstr()
 %% @doc  Decode a bstr using the XML-encoding scheme to resolve any character
 %%       entity reference present in the string.
+%% @end
 %%--------------------------------------------------------------------
 -spec xmldecode(bstr()) -> bstr().
 xmldecode(Str) ->
@@ -1319,12 +1391,13 @@ xmldecode(Str, Offset, Acc) ->
     end.
 
 %%--------------------------------------------------------------------
-%% @spec xmldecode_char(bstr(), Offset:integer()) -> {char(), Length::integer()}
+%% @spec xmldecode_char(bstr(), Offset::integer()) -> {char(), 1 | 4 | 5 | 6} | eof
 %% @doc  Given a string and an offset, this function checks whether there is a
 %%       character in that position that has to be decoded using the XML 
 %%       encoding scheme for character entity references and returns a tuple 
 %%       with the decoded character and the length of the encoded substring in 
 %%       the original string.
+%% @end
 %%--------------------------------------------------------------------
 -spec xmldecode_char(bstr(), integer()) -> {char(), 1 | 4 | 5 | 6} | eof.
 xmldecode_char(Str, Offset) ->
@@ -1352,6 +1425,7 @@ xmldecode_char(Str, Offset) ->
 %% @spec hexencode(bstr()) -> bstr()
 %% @doc  Encode a bstr converting each character to its hexadecimal 
 %%       representation.
+%% @end
 %%--------------------------------------------------------------------
 -spec hexencode(bstr()) -> bstr().
 hexencode(Str) when is_binary(Str) ->
@@ -1365,6 +1439,7 @@ hexencode(<<>>, Acc) ->
 %%--------------------------------------------------------------------
 %% @spec hexdecode(bstr()) -> bstr()
 %% @doc  Decode a bstr with an hexadecimal representation of a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec hexdecode(bstr()) -> bstr().
 hexdecode(Str) when is_binary(Str) ->

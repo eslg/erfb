@@ -1,6 +1,7 @@
 ERL			:=	erl
 ERLC		:=	erlc -W -I include -v -o ebin
-SOURCES		:=	src/*.erl;src/*/*.erl
+SOURCES		:=	src/*.erl
+DEEP_SOURCES:=  src/*/*.erl
 EPATH		:=	-pa ebin
 DOC_OPTS	:=	{dir, \"doc/html\"}, {includes, [\"include\"]}, {source_path, [\"include\", \"src\"]}
 
@@ -10,8 +11,9 @@ all:
 	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
 
 docs: all
+	@cp src/overview.edoc doc/html
 	@$(ERL) -noshell $(EPATH) \
-		-eval "edoc:files(filelib:wildcard(\"$(SOURCES)\"), [$(DOC_OPTS)])" \
+		-eval "edoc:files(filelib:wildcard(\"$(SOURCES)\") ++ filelib:wildcard(\"$(DEEP_SOURCES)\") , [$(DOC_OPTS)])" \
 		-s init stop
 
 clean: 

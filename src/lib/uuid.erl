@@ -20,6 +20,7 @@
 %%--------------------------------------------------------------------
 %% @spec new() -> binary()
 %% @doc  Generate a binary representing a v4 UUID (see RFC 4122).
+%% @end
 %%--------------------------------------------------------------------
 -spec new() -> binary().
 new() ->
@@ -34,6 +35,7 @@ new(R1, R2, R3, R4) ->
 %%--------------------------------------------------------------------
 %% @spec as_string() -> string()
 %% @doc  Generate a v4 UUID as a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec as_string() -> string().
 as_string() ->
@@ -41,8 +43,9 @@ as_string() ->
 
 
 %%--------------------------------------------------------------------
-%% @spec as_bstr() -> bstr()
+%% @spec as_bstr() -> bstr:bstr()
 %% @doc  Generate a v4 UUID as a string encoded in a binary.
+%% @end
 %%--------------------------------------------------------------------
 -spec as_bstr() -> bstr:bstr().
 as_bstr() ->
@@ -52,6 +55,7 @@ as_bstr() ->
 %%--------------------------------------------------------------------
 %% @spec to_string(Uuid :: binary()) -> string()
 %% @doc  Convert a UUID to a string.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_string(Uuid :: binary()) -> string().
 to_string(<<TL:4/binary, TM:2/binary, THV:2/binary, CS:2/binary, N:6/binary>>) ->
@@ -73,8 +77,9 @@ hexencode(<<>>, Acc) ->
 
 
 %%--------------------------------------------------------------------
-%% @spec to_bstr(Uuid :: binary()) -> bstr()
+%% @spec to_bstr(Uuid :: binary()) -> bstr:bstr()
 %% @doc  Convert a UUID to a string encoded in a binary.
+%% @end
 %%--------------------------------------------------------------------
 -spec to_bstr(binary()) -> bstr:bstr().
 to_bstr(Uuid) when is_binary(Uuid) ->
@@ -83,10 +88,11 @@ to_bstr(Uuid) when is_binary(Uuid) ->
 
 %%--------------------------------------------------------------------
 %% @spec is_valid(Uuid) -> 
-%%         Uuid = string() | binary()
+%%         Uuid :: string() | binary()
 %% @doc  Determine if a string is a valid UUID. A UUID is formed by a sequence
 %%       of hexadecimal characters (usually in lower case) separated by dashes.
 %%       e.g. 6e5902ba-c09f-11dd-b9ab-001d7dd022f8
+%% @end
 %%--------------------------------------------------------------------
 -spec is_valid(binary() | string()) -> boolean(). 
 is_valid(Uuid) when is_list(Uuid) ->

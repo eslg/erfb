@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Test Utils for eRFB
+%%% @private
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received

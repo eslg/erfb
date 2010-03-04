@@ -2,8 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Listener process for RFB servers
-%%% @see http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles
-%%%      (by Serge Aleynikov <saleyn@gmail.com>)
+%%% @reference See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> by <a href="mailto:saleyn@gmail.com">Serge Aleynikov</a> for more information
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
