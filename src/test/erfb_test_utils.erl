@@ -1,7 +1,14 @@
-%% @author Fernando Benavides <fbenavides@novamens.com>
-%% @copyright 2009 Novamens S.R.L.
-%% @doc Utility test functions for ERFB
--module(erfb_test).
+%%%-------------------------------------------------------------------
+%%% @author Fernando Benavides <fbenavides@novamens.com>
+%%% @copyright (C) 2010 Novamens S.A.
+%%% @doc Test Utils for eRFB
+%%% @end
+%%%
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
+-module(erfb_test_utils).
 -author('Fernando Benavides <fbenavides@novamens.com>').
 
 -export([session/0, session/1, session/2]).

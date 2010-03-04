@@ -1,7 +1,14 @@
-%% @author Juan Jose Comellas <jcomellas@novamens.com>
-%% @author Mahesh Paolini-Subramanya <mahesh@aptela.com>
-%% @copyright 2009 Novamens S.A.
-%% @doc Module that generates and validates UUIDs. 
+%%%-------------------------------------------------------------------
+%%% @author Juan Jose Comellas <jcomellas@novamens.com>
+%%% @author Mahesh Paolini-Subramanya <mahesh@aptela.com>
+%%% @copyright 2009 Novamens S.A.
+%%% @doc String implemented over an Erlang binary.
+%%% @end
+%%%
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
 -module(uuid).
 -author('Juan Jose Comellas <jcomellas@novamens.com>').
 -author('Mahesh Paolini-Subramanya <mahesh@aptela.com>').

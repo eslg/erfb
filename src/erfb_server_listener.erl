@@ -1,8 +1,15 @@
-%% @author Fernando Benavides <fbenavides@novamens.com>
-%% @copyright 2009 Novamens S.R.L.
-%% @doc Listener process for servers of the RFB Server
-%% @see http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles
-%%      (by Serge Aleynikov <saleyn@gmail.com>)
+%%%-------------------------------------------------------------------
+%%% @author Fernando Benavides <fbenavides@novamens.com>
+%%% @copyright (C) 2010 Novamens S.A.
+%%% @doc Listener process for RFB servers
+%%% @see http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles
+%%%      (by Serge Aleynikov <saleyn@gmail.com>)
+%%% @end
+%%%
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
 -module(erfb_server_listener).
 -author('Fernando Benavides <fbenavides@novamens.com>').
 

@@ -1,6 +1,13 @@
-%% @author Fernando Benavides <fbenavides@novamens.com>
-%% @copyright 2009 Novamens S.R.L.
-%% @doc Event Dispatcher for Server Processes of the Novamens RFB Server
+%%%-------------------------------------------------------------------
+%%% @author Fernando Benavides <fbenavides@novamens.com>
+%%% @copyright (C) 2010 Novamens S.A.
+%%% @doc Event Dispatcher for client events received by the connected server processes
+%%% @end
+%%%
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
 -module(erfb_server_event_dispatcher).
 -author('Fernando Benavides <fbenavides@novamens.com>').
 

@@ -1,7 +1,14 @@
-%% @author Juan Jose Comellas <jcomellas@novamens.com>
-%% @author Mahesh Paolini-Subramanya <mahesh@aptela.com>
-%% @copyright 2008 Novamens S.A.
-%% @doc String implemented over an Erlang binary.
+%%%-------------------------------------------------------------------
+%%% @author Juan Jose Comellas <jcomellas@novamens.com>
+%%% @author Mahesh Paolini-Subramanya <mahesh@aptela.com>
+%%% @copyright 2008 Novamens S.A.
+%%% @doc String implemented over an Erlang binary.
+%%% @end
+%%%
+%%% This source file is subject to the New BSD License. You should have received
+%%% a copy of the New BSD license with this software. If not, it can be
+%%% retrieved from: http://www.opensource.org/licenses/bsd-license.php
+%%%-------------------------------------------------------------------
 -module(bstr).
 -author('Juan Jose Comellas <jcomellas@novamens.com>').
 -author('Mahesh Paolini-Subramanya <mahesh@aptela.com>').
