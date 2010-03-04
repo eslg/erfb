@@ -1,9 +1,0 @@
-{packages,[]}.
-{modules,[bstr,erfb_client,erfb_client_event_dispatcher,erfb_client_listener,
-          erfb_client_manager,erfb_client_process,erfb_encoding,
-          erfb_encoding_copy_rect,erfb_encoding_corre,erfb_encoding_cursor,
-          erfb_encoding_desktop_size,erfb_encoding_hextile,erfb_encoding_raw,
-          erfb_encoding_rre,erfb_encoding_zlib,erfb_encoding_zrle,erfb_server,
-          erfb_server_event_dispatcher,erfb_server_listener,
-          erfb_server_listener_manager,erfb_server_manager,
-          erfb_server_process,erfb_utils,uuid]}.
