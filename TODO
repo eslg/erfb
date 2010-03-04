@@ -1,27 +1,32 @@
-Missing encodings:
--23  < -32  - JPEG Quality Level -> http://www.tigervnc.com/cgi-bin/rfbproto#jpeg-quality-level-pseudo-encoding
--247 < -256 - Compression Level
-    -307    - DesktopName Pseudo-encoding
-    8       - zlibhex
-    7       - Tight
--240 < -246 - Tight options
--225 < -238 - Tight options
+Features:
+    Documentation
+    Test server & Test Client
 
-Tough ones:
-    -224    - LastRect -> http://www.tigervnc.com/cgi-bin/rfbproto#lastrect-pseudo-encoding
-                Requires erfb_client_process to detect it.  Maybe not a great idea.
-    9       - Ultra -> http://www.uvnc.com/install/viewerconfig.html
-                There's almost no documentation about it
-    -65535  - Cache -> http://www.snw.info.hu/ftp/download.php?fname=./Egyeb/Cooltools/rfbcaching.pdf
-                Requires "off-protocol" messages
-    -308    - ExtendedDesktopSize Pseudo-encoding -> http://www.tigervnc.com/cgi-bin/rfbproto#desktopsize-pseudo-encoding
-                Requires "off-protocol" messages
-    -309    - xvp Pseudo-encoding
-                Requires "off-protocol" messages
-    17      - Hitachi ZYWRLE -> http://micro-vnc.jp/research/remote_desktop_ng/ZYWRLE/publications/#License
-
-Undocumented ones:
-    -65530  - 
-    -32768  -
-    -32767  -
-    -32766  -
+Encodings:
+    Missing ones:
+    -23  < -32  - JPEG Quality Level -> http://www.tigervnc.com/cgi-bin/rfbproto#jpeg-quality-level-pseudo-encoding
+    -247 < -256 - Compression Level
+        -307    - DesktopName Pseudo-encoding
+        8       - zlibhex
+        7       - Tight
+    -240 < -246 - Tight options
+    -225 < -238 - Tight options
+    
+    Tough ones:
+        -224    - LastRect -> http://www.tigervnc.com/cgi-bin/rfbproto#lastrect-pseudo-encoding
+                    Requires erfb_client_process to detect it.  Maybe not a great idea.
+        9       - Ultra -> http://www.uvnc.com/install/viewerconfig.html
+                    There's almost no documentation about it
+        -65535  - Cache -> http://www.snw.info.hu/ftp/download.php?fname=./Egyeb/Cooltools/rfbcaching.pdf
+                    Requires "off-protocol" messages
+        -308    - ExtendedDesktopSize Pseudo-encoding -> http://www.tigervnc.com/cgi-bin/rfbproto#desktopsize-pseudo-encoding
+                    Requires "off-protocol" messages
+        -309    - xvp Pseudo-encoding
+                    Requires "off-protocol" messages
+        17      - Hitachi ZYWRLE -> http://micro-vnc.jp/research/remote_desktop_ng/ZYWRLE/publications/#License
+    
+    Undocumented ones:
+        -65530  - 
+        -32768  -
+        -32767  -
+        -32766  -
