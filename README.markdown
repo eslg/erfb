@@ -42,6 +42,7 @@ Follow this steps to build a RFB *Client*:
 >  * ``sender :: pid()``: The pid of the process that sent the event
 >  * ``server :: binary()``: The id of the server (assigned by *erfb* automatically)
 >  * ``raw_data :: binary()``: The actual bytes sent by the RFB server
+>
 >    Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):
 >
 >  * `#server_connected{}`
@@ -79,6 +80,7 @@ Follow this steps to build a RFB *Server*:
 >  * ``sender :: pid()``: The pid of the process that sent the event
 >  * ``client :: binary()``: The id of the client (assigned by *erfb* automatically) *Note:* a server may have more than just one client
 >  * ``raw_data :: binary()``: The actual bytes sent by the RFB server
+>
 >    Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):
 >
 >  * `#client_connected{}`
