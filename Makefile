@@ -11,10 +11,13 @@ all:
 	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
 
 docs: all
+	@rm -rf web/*
+	@mkdir -p doc/html
 	@cp src/overview.edoc doc/html
 	@$(ERL) -noshell $(EPATH) \
 		-eval "edoc:files(filelib:wildcard(\"$(SOURCES)\") ++ filelib:wildcard(\"$(DEEP_SOURCES)\") , [$(DOC_OPTS)])" \
 		-s init stop
+	@cp -r doc/html/* web
 
 clean: 
 	@echo "removing:"
