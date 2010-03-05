@@ -1,0 +1,8 @@
+** this is the overview.doc file for the application 'erfb' **
+@author Fernando Benavides <fbenavides@novamens.com>
+@author Juan Jose Comellas <jcomellas@novamens.com>
+@author Mahesh Paolini-Subramanya <mahesh@aptela.com>
+@copyright 2010 Novamens S.A.
+@version 1.0.0
+@title Erlang RFB (Remote FrameBuffer) Library
+@doc A library to start, manage and stop RFB client and/or server connections.

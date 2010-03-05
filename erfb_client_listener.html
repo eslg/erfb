@@ -9,63 +9,57 @@
 <hr>
 
 <h1>Module erfb_client_listener</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Listener process for RFB clients.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Listener process for RFB clients.
 <p>Copyright © (C) 2010 Novamens S.A.</p>
 
 <p><b>Behaviours:</b> <a href="gen_server.html"><tt>gen_server</tt></a>.</p>
 <p><b>Authors:</b> Fernando Benavides (<a href="mailto:fbenavides@novamens.com"><tt>fbenavides@novamens.com</tt></a>).</p>
-<p><b>References</b><ul><li>See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> by <a href="mailto:saleyn@gmail.com">Serge Aleynikov</a> for more information</li></ul></p>
+<p><b>References</b><ul><li>See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> for more information</li></ul></p>
 
 <h2><a name="description">Description</a></h2>Listener process for RFB clients
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-async_state_result">async_state_result()</a></h3>
+<p><tt>async_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-client_event">client_event()</a></h3>
+<p><tt>client_event() = #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-fsmref">fsmref()</a></h3>
+<p><tt>fsmref() = pid() | atom()</tt></p>
+<p>FSM Reference: a way to identify an ERFB client or server process</p>
+
+<h3 class="typedecl"><a name="type-ip">ip()</a></h3>
+<p><tt>ip() = string() | {integer(), integer(), integer(), integer()}</tt></p>
+<p>IP Address, either as a string or parsed.</p>
+
+<h3 class="typedecl"><a name="type-security_kind">security_kind()</a></h3>
+<p><tt>security_kind() = none | {vnc, Password::binary()}</tt></p>
+<p>The supported security types</p>
+
+<h3 class="typedecl"><a name="type-server_event">server_event()</a></h3>
+<p><tt>server_event() = #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sync_state_result">sync_state_result()</a></h3>
+<p><tt>sync_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}</tt></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start_link-3">start_link/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#start_link-3">start_link/3</a></td><td> Starts a new client listener.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
-<h3 class="function"><a name="code_change-3">code_change/3</a></h3>
-<div class="spec">
-<p><tt>code_change(OldVsn, State, Extra) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_call-3">handle_call/3</a></h3>
-<div class="spec">
-<p><tt>handle_call(Request, From, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_cast-2">handle_cast/2</a></h3>
-<div class="spec">
-<p><tt>handle_cast(Msg, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_info-2">handle_info/2</a></h3>
-<div class="spec">
-<p><tt>handle_info(Info, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="init-1">init/1</a></h3>
-<div class="spec">
-<p><tt>init(X1) -&gt; any()</tt></p>
-</div>
-
 <h3 class="function"><a name="start_link-3">start_link/3</a></h3>
 <div class="spec">
-<p><tt>start_link(Ip, Port, Backlog) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="terminate-2">terminate/2</a></h3>
-<div class="spec">
-<p><tt>terminate(Reason, State) -&gt; any()</tt></p>
-</div>
+<p><tt>start_link(Ip::<a href="#type-ip">ip()</a>, Port::integer(), Backlog::integer()) -&gt; {ok, pid()}</tt></p>
+</div><p> Starts a new client listener</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 4 2010, 18:16:42.</i></p>
+<p><i>Generated by EDoc, Mar 5 2010, 16:09:37.</i></p>
 </body>
 </html>

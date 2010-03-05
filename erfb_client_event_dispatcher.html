@@ -9,55 +9,94 @@
 <hr>
 
 <h1>Module erfb_client_event_dispatcher</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Event Dispatcher for server events received by client processes.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Event Dispatcher for server events received by client processes.
 <p>Copyright © (C) 2010 Novamens S.A.</p>
 
 <p><b>Authors:</b> Fernando Benavides (<a href="mailto:fbenavides@novamens.com"><tt>fbenavides@novamens.com</tt></a>).</p>
 
 <h2><a name="description">Description</a></h2>Event Dispatcher for server events received by client processes
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-async_state_result">async_state_result()</a></h3>
+<p><tt>async_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-client_event">client_event()</a></h3>
+<p><tt>client_event() = #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-event_handler">event_handler()</a></h3>
+<p><tt>event_handler() = atom() | {atom(), Id::term()}</tt></p>
+<p>A module to handler events.</p>
+
+<h3 class="typedecl"><a name="type-fsmref">fsmref()</a></h3>
+<p><tt>fsmref() = pid() | atom()</tt></p>
+<p>FSM Reference: a way to identify an ERFB client or server process</p>
+
+<h3 class="typedecl"><a name="type-ip">ip()</a></h3>
+<p><tt>ip() = string() | {integer(), integer(), integer(), integer()}</tt></p>
+<p>IP Address, either as a string or parsed.</p>
+
+<h3 class="typedecl"><a name="type-security_kind">security_kind()</a></h3>
+<p><tt>security_kind() = none | {vnc, Password::binary()}</tt></p>
+<p>The supported security types</p>
+
+<h3 class="typedecl"><a name="type-server_event">server_event()</a></h3>
+<p><tt>server_event() = #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sync_state_result">sync_state_result()</a></h3>
+<p><tt>sync_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}</tt></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#notify-1">notify/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr>
-<tr><td valign="top"><a href="#subscribe-2">subscribe/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#subscribe_link-2">subscribe_link/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#subscriptions-0">subscriptions/0</a></td><td></td></tr>
-<tr><td valign="top"><a href="#unsubscribe-2">unsubscribe/2</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#notify-1">notify/1</a></td><td> Sends an event to the subscribed handlers.</td></tr>
+<tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td> Starts a new event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#subscribe-2">subscribe/2</a></td><td> Subscribes a handler to the event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#subscribe_link-2">subscribe_link/2</a></td><td> Subscribes and links a handler to the event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#subscriptions-0">subscriptions/0</a></td><td> Returns the list of subscriptions.</td></tr>
+<tr><td valign="top"><a href="#unsubscribe-2">unsubscribe/2</a></td><td> Unsubscribes a handler from the event dispatcher.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
 <h3 class="function"><a name="notify-1">notify/1</a></h3>
 <div class="spec">
-<p><tt>notify(Event) -&gt; any()</tt></p>
-</div>
+<p><tt>notify(Event::<a href="#type-server_event">server_event()</a>) -&gt; ok</tt></p>
+</div><p> Sends an event to the subscribed handlers</p>
+<p><b>See also:</b> <a href="gen_event.html#notify-2">gen_event:notify/2</a>.</p>
 
 <h3 class="function"><a name="start_link-0">start_link/0</a></h3>
 <div class="spec">
-<p><tt>start_link() -&gt; any()</tt></p>
-</div>
+<p><tt>start_link() -&gt; {ok, pid()}</tt></p>
+</div><p> Starts a new event dispatcher</p>
 
 <h3 class="function"><a name="subscribe-2">subscribe/2</a></h3>
 <div class="spec">
-<p><tt>subscribe(EventHandler, InitArgs) -&gt; any()</tt></p>
-</div>
+<p><tt>subscribe(EventHandler::<a href="#type-event_handler">event_handler()</a>, InitArgs::term()) -&gt; ok | {'EXIT', term()} | term()</tt></p>
+</div><p> Subscribes a handler to the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#add_handler-3">gen_event:add_handler/3</a>.</p>
 
 <h3 class="function"><a name="subscribe_link-2">subscribe_link/2</a></h3>
 <div class="spec">
-<p><tt>subscribe_link(EventHandler, InitArgs) -&gt; any()</tt></p>
-</div>
+<p><tt>subscribe_link(EventHandler::<a href="#type-event_handler">event_handler()</a>, InitArgs::term()) -&gt; ok | {'EXIT', term()} | term()</tt></p>
+</div><p> Subscribes and links a handler to the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a>.</p>
 
 <h3 class="function"><a name="subscriptions-0">subscriptions/0</a></h3>
 <div class="spec">
-<p><tt>subscriptions() -&gt; any()</tt></p>
-</div>
+<p><tt>subscriptions() -&gt; [<a href="#type-event_handler">event_handler()</a>]</tt></p>
+</div><p> Returns the list of subscriptions</p>
+<p><b>See also:</b> <a href="gen_event.html#which_handlers-1">gen_event:which_handlers/1</a>.</p>
 
 <h3 class="function"><a name="unsubscribe-2">unsubscribe/2</a></h3>
 <div class="spec">
-<p><tt>unsubscribe(EventHandler, Args) -&gt; any()</tt></p>
-</div>
+<p><tt>unsubscribe(EventHandler::<a href="#type-event_handler">event_handler()</a>, Args::term()) -&gt; term() | {error, module_not_found} | {'EXIT', term()}</tt></p>
+</div><p> Unsubscribes a handler from the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#delete_handler-3">gen_event:delete_handler/3</a>.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 4 2010, 18:16:42.</i></p>
+<p><i>Generated by EDoc, Mar 5 2010, 16:09:37.</i></p>
 </body>
 </html>

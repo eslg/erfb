@@ -9,152 +9,105 @@
 <hr>
 
 <h1>Module erfb_server_process</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>RFB Server Process.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>RFB Server Process.
 <p>Copyright © (C) 2010 Novamens S.A.</p>
 
 <p><b>Behaviours:</b> <a href="gen_fsm.html"><tt>gen_fsm</tt></a>.</p>
 <p><b>Authors:</b> Fernando Benavides (<a href="mailto:fbenavides@novamens.com"><tt>fbenavides@novamens.com</tt></a>).</p>
 
 <h2><a name="description">Description</a></h2>RFB Server Process
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-async_state_result">async_state_result()</a></h3>
+<p><tt>async_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-client_event">client_event()</a></h3>
+<p><tt>client_event() = #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-fsmref">fsmref()</a></h3>
+<p><tt>fsmref() = pid() | atom()</tt></p>
+<p>FSM Reference: a way to identify an ERFB client or server process</p>
+
+<h3 class="typedecl"><a name="type-ip">ip()</a></h3>
+<p><tt>ip() = string() | {integer(), integer(), integer(), integer()}</tt></p>
+<p>IP Address, either as a string or parsed.</p>
+
+<h3 class="typedecl"><a name="type-security_kind">security_kind()</a></h3>
+<p><tt>security_kind() = none | {vnc, Password::binary()}</tt></p>
+<p>The supported security types</p>
+
+<h3 class="typedecl"><a name="type-server_event">server_event()</a></h3>
+<p><tt>server_event() = #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sync_state_result">sync_state_result()</a></h3>
+<p><tt>sync_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}</tt></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#bell-1">bell/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#code_change-4">code_change/4</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_event-3">handle_event/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_info-3">handle_info/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#handle_sync_event-4">handle_sync_event/4</a></td><td></td></tr>
-<tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#prep_stop-2">prep_stop/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#running-2">running/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#running-3">running/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#send_event-2">send_event/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#server_cut_text-2">server_cut_text/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#server_disconnected-2">server_disconnected/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#set_colour_map_entries-3">set_colour_map_entries/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#set_socket-2">set_socket/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#start_link-2">start_link/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#terminate-3">terminate/3</a></td><td></td></tr>
-<tr><td valign="top"><a href="#update-2">update/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_client_init-2">wait_for_client_init/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_handshake-2">wait_for_handshake/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_security_type-2">wait_for_security_type/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_socket-2">wait_for_socket/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#wait_for_vnc_response-2">wait_for_vnc_response/2</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#bell-1">bell/1</a></td><td>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #bell{})</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#send_event-2">send_event/2</a></td><td> Sends an server event to the client.</td></tr>
+<tr><td valign="top"><a href="#server_cut_text-2">server_cut_text/2</a></td><td>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #server_cut_text{text = Text})</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#server_disconnected-2">server_disconnected/2</a></td><td>Equivalent to <a href="#send_event-2"><tt>send_event(Server,
+	   #server_disconnected{reason = Reason})</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#set_colour_map_entries-3">set_colour_map_entries/3</a></td><td>Equivalent to <a href="#send_event-2"><tt>send_event(Server,
+	   #set_colour_map_entries{first_colour = FirstColour,
+				   colours = Colours})</tt></a>.
+</td></tr>
+<tr><td valign="top"><a href="#update-2">update/2</a></td><td>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #update{rectangles = Rectangles})</tt></a>.
+</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
 <h3 class="function"><a name="bell-1">bell/1</a></h3>
 <div class="spec">
-<p><tt>bell(Server) -&gt; any()</tt></p>
-</div>
+<p><tt>bell(Server::<a href="#type-fsmref">fsmref()</a>) -&gt; ok</tt></p>
+</div><p>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #bell{})</tt></a>.</p>
 
-<h3 class="function"><a name="code_change-4">code_change/4</a></h3>
-<div class="spec">
-<p><tt>code_change(OldVsn, StateName, StateData, Extra) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_event-3">handle_event/3</a></h3>
-<div class="spec">
-<p><tt>handle_event(Event, StateName, StateData) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_info-3">handle_info/3</a></h3>
-<div class="spec">
-<p><tt>handle_info(Info, StateName, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="handle_sync_event-4">handle_sync_event/4</a></h3>
-<div class="spec">
-<p><tt>handle_sync_event(Event, From, StateName, StateData) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="init-1">init/1</a></h3>
-<div class="spec">
-<p><tt>init(X1) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="prep_stop-2">prep_stop/2</a></h3>
-<div class="spec">
-<p><tt>prep_stop(Client, Reason) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="running-2">running/2</a></h3>
-<div class="spec">
-<p><tt>running(X1, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="running-3">running/3</a></h3>
-<div class="spec">
-<p><tt>running(Update, From, State) -&gt; any()</tt></p>
-</div>
 
 <h3 class="function"><a name="send_event-2">send_event/2</a></h3>
 <div class="spec">
-<p><tt>send_event(Server, Event) -&gt; any()</tt></p>
-</div>
+<p><tt>send_event(Server::<a href="#type-fsmref">fsmref()</a>, Event::<a href="#type-server_event">server_event()</a>) -&gt; ok</tt></p>
+</div><p> Sends an server event to the client.  The event may be one of the following ones (each one represented with a corresponding record):
+        <ul><li>server_connected</li><li>server_disconnected</li><li>set_colour_map_entries</li>
+            <li>update</li><li>bell</li><li>server_cut_text</li></ul>
+        For a description of the events, check the <a href="http://www.tigervnc.com/cgi-bin/rfbproto#client-to-server-messages">RFB Protocol Definition</a></p>
 
 <h3 class="function"><a name="server_cut_text-2">server_cut_text/2</a></h3>
 <div class="spec">
-<p><tt>server_cut_text(Server, Text) -&gt; any()</tt></p>
-</div>
+<p><tt>server_cut_text(Server::<a href="#type-fsmref">fsmref()</a>, Text::binary()) -&gt; ok</tt></p>
+</div><p>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #server_cut_text{text = Text})</tt></a>.</p>
+
 
 <h3 class="function"><a name="server_disconnected-2">server_disconnected/2</a></h3>
 <div class="spec">
-<p><tt>server_disconnected(Server, Reason) -&gt; any()</tt></p>
-</div>
+<p><tt>server_disconnected(Server::<a href="#type-fsmref">fsmref()</a>, Reason::term()) -&gt; ok</tt></p>
+</div><p>Equivalent to <a href="#send_event-2"><tt>send_event(Server,
+	   #server_disconnected{reason = Reason})</tt></a>.</p>
+
 
 <h3 class="function"><a name="set_colour_map_entries-3">set_colour_map_entries/3</a></h3>
 <div class="spec">
-<p><tt>set_colour_map_entries(Server, FirstColour, Colours) -&gt; any()</tt></p>
-</div>
+<p><tt>set_colour_map_entries(Server::<a href="#type-fsmref">fsmref()</a>, FirstColour::integer(), Colours::[#colour{}]) -&gt; ok</tt></p>
+</div><p>Equivalent to <a href="#send_event-2"><tt>send_event(Server,
+	   #set_colour_map_entries{first_colour = FirstColour,
+				   colours = Colours})</tt></a>.</p>
 
-<h3 class="function"><a name="set_socket-2">set_socket/2</a></h3>
-<div class="spec">
-<p><tt>set_socket(Pid, Socket) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="start_link-2">start_link/2</a></h3>
-<div class="spec">
-<p><tt>start_link(Server, Encodings) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="terminate-3">terminate/3</a></h3>
-<div class="spec">
-<p><tt>terminate(Reason, StateName, State) -&gt; any()</tt></p>
-</div>
 
 <h3 class="function"><a name="update-2">update/2</a></h3>
 <div class="spec">
-<p><tt>update(Server, Rectangles) -&gt; any()</tt></p>
-</div>
+<p><tt>update(Server::<a href="#type-fsmref">fsmref()</a>, Rectangles::[#rectangle{}]) -&gt; ok</tt></p>
+</div><p>Equivalent to <a href="#send_event-2"><tt>send_event(Server, #update{rectangles = Rectangles})</tt></a>.</p>
 
-<h3 class="function"><a name="wait_for_client_init-2">wait_for_client_init/2</a></h3>
-<div class="spec">
-<p><tt>wait_for_client_init(Event, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="wait_for_handshake-2">wait_for_handshake/2</a></h3>
-<div class="spec">
-<p><tt>wait_for_handshake(Event, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="wait_for_security_type-2">wait_for_security_type/2</a></h3>
-<div class="spec">
-<p><tt>wait_for_security_type(Event, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="wait_for_socket-2">wait_for_socket/2</a></h3>
-<div class="spec">
-<p><tt>wait_for_socket(Other, State) -&gt; any()</tt></p>
-</div>
-
-<h3 class="function"><a name="wait_for_vnc_response-2">wait_for_vnc_response/2</a></h3>
-<div class="spec">
-<p><tt>wait_for_vnc_response(Event, State) -&gt; any()</tt></p>
-</div>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 4 2010, 18:16:42.</i></p>
+<p><i>Generated by EDoc, Mar 5 2010, 16:09:37.</i></p>
 </body>
 </html>

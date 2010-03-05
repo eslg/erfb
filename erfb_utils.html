@@ -9,67 +9,104 @@
 <hr>
 
 <h1>Module erfb_utils</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>RFB Utility Functions.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>RFB Utility Functions.
 <p>Copyright © (C) 2010 Novamens S.A.</p>
 
 <p><b>Authors:</b> Fernando Benavides (<a href="mailto:fbenavides@novamens.com"><tt>fbenavides@novamens.com</tt></a>).</p>
 
 <h2><a name="description">Description</a></h2>RFB Utility Functions
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-async_state_result">async_state_result()</a></h3>
+<p><tt>async_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-client_event">client_event()</a></h3>
+<p><tt>client_event() = #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-fsmref">fsmref()</a></h3>
+<p><tt>fsmref() = pid() | atom()</tt></p>
+<p>FSM Reference: a way to identify an ERFB client or server process</p>
+
+<h3 class="typedecl"><a name="type-ip">ip()</a></h3>
+<p><tt>ip() = string() | {integer(), integer(), integer(), integer()}</tt></p>
+<p>IP Address, either as a string or parsed.</p>
+
+<h3 class="typedecl"><a name="type-security_kind">security_kind()</a></h3>
+<p><tt>security_kind() = none | {vnc, Password::binary()}</tt></p>
+<p>The supported security types</p>
+
+<h3 class="typedecl"><a name="type-server_event">server_event()</a></h3>
+<p><tt>server_event() = #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sync_state_result">sync_state_result()</a></h3>
+<p><tt>sync_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}</tt></p>
+
+
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#build_string-1">build_string/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#ceiling-1">ceiling/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#complete-3">complete/3</a></td><td>This function *must* be always invoked with a pasive socket!</td></tr>
-<tr><td valign="top"><a href="#complete-4">complete/4</a></td><td></td></tr>
-<tr><td valign="top"><a href="#floor-1">floor/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#get_full_string-2">get_full_string/2</a></td><td></td></tr>
-<tr><td valign="top"><a href="#pf_to_binary-1">pf_to_binary/1</a></td><td></td></tr>
-<tr><td valign="top"><a href="#timestamp-0">timestamp/0</a></td><td></td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#build_string-1">build_string/1</a></td><td> Converts a binary string into an RFB string: <code> &lt;&lt;Length:4/integer-unit:8, String/binary&gt;&gt; </code></td></tr>
+<tr><td valign="top"><a href="#ceiling-1">ceiling/1</a></td><td> Returns the ceiling (next bigest integer) of <code>X</code></td></tr>
+<tr><td valign="top"><a href="#complete-3">complete/3</a></td><td> Completes Prefix until it gets FullLength bytes from the Socket.</td></tr>
+<tr><td valign="top"><a href="#complete-4">complete/4</a></td><td> Completes Prefix until it gets FullLength bytes from the Socket.</td></tr>
+<tr><td valign="top"><a href="#floor-1">floor/1</a></td><td> Returns the floor (next smallest integer) of <code>X</code></td></tr>
+<tr><td valign="top"><a href="#get_full_string-2">get_full_string/2</a></td><td> Gets the complete string from its prefix and the socket.</td></tr>
+<tr><td valign="top"><a href="#pf_to_binary-1">pf_to_binary/1</a></td><td> Converts a <code>#pixel_format{}</code> record into its binary form.</td></tr>
+<tr><td valign="top"><a href="#timestamp-0">timestamp/0</a></td><td> Returns the current timestamp in POSIX usecs.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
 <h3 class="function"><a name="build_string-1">build_string/1</a></h3>
 <div class="spec">
-<p><tt>build_string(String) -&gt; any()</tt></p>
-</div>
+<p><tt>build_string(String::binary()) -&gt; binary()</tt></p>
+</div><p> Converts a binary string into an RFB string: <code> &lt;&lt;Length:4/integer-unit:8, String/binary&gt;&gt; </code></p>
 
 <h3 class="function"><a name="ceiling-1">ceiling/1</a></h3>
 <div class="spec">
-<p><tt>ceiling(X) -&gt; any()</tt></p>
-</div>
+<p><tt>ceiling(X::float()) -&gt; integer()</tt></p>
+</div><p> Returns the ceiling (next bigest integer) of <code>X</code></p>
 
 <h3 class="function"><a name="complete-3">complete/3</a></h3>
 <div class="spec">
-<p><tt>complete(Prefix, FullLength, Socket) -&gt; any()</tt></p>
-</div><p>This function *must* be always invoked with a pasive socket!</p>
+<p><tt>complete(Prefix::binary(), FullLength::integer(), Socket::port()) -&gt; binary() | timeout</tt></p>
+</div><p> Completes Prefix until it gets FullLength bytes from the Socket.
+        <em>Note:</em> This function *must* be always invoked with a pasive socket</p>
 
 <h3 class="function"><a name="complete-4">complete/4</a></h3>
 <div class="spec">
-<p><tt>complete(Prefix, FullLength, Socket, TrhowException) -&gt; any()</tt></p>
-</div>
+<p><tt>complete(Prefix::binary(), FullLength::integer(), Socket::port(), TrhowException::<a href="#type-boolean">boolean()</a>) -&gt; binary() | timeout</tt></p>
+</div><p> Completes Prefix until it gets FullLength bytes from the Socket.
+        If it takes more than 5 seconds, and ThrowException is true, throws a
+        timeout exception, otherwise returns <code>timeout</code>
+        <em>Note:</em> This function *must* be always invoked with a pasive socket</p>
 
 <h3 class="function"><a name="floor-1">floor/1</a></h3>
 <div class="spec">
-<p><tt>floor(X) -&gt; any()</tt></p>
-</div>
+<p><tt>floor(X::float()) -&gt; integer()</tt></p>
+</div><p> Returns the floor (next smallest integer) of <code>X</code></p>
 
 <h3 class="function"><a name="get_full_string-2">get_full_string/2</a></h3>
 <div class="spec">
-<p><tt>get_full_string(String, S) -&gt; any()</tt></p>
-</div>
+<p><tt>get_full_string(String::binary(), S::port()) -&gt; {Result::binary(), Rest::binary()}</tt></p>
+</div><p> Gets the complete string from its prefix and the socket.
+        The first 32 bits in RFB prtocol strings tell the length of the string.  This function reads
+        all the bytes it needs from the socket until the string is complete and returns any extra
+        byte read if there were enough bytes already in the stream</p>
 
 <h3 class="function"><a name="pf_to_binary-1">pf_to_binary/1</a></h3>
 <div class="spec">
-<p><tt>pf_to_binary(Pixel_format) -&gt; any()</tt></p>
-</div>
+<p><tt>pf_to_binary(Pixel_format::#pixel_format{}) -&gt; binary()</tt></p>
+</div><p> Converts a <code>#pixel_format{}</code> record into its binary form</p>
 
 <h3 class="function"><a name="timestamp-0">timestamp/0</a></h3>
 <div class="spec">
-<p><tt>timestamp() -&gt; any()</tt></p>
-</div>
+<p><tt>timestamp() -&gt; <a href="#type-non_neg_integer">non_neg_integer()</a></tt></p>
+</div><p> Returns the current timestamp in POSIX usecs</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 4 2010, 18:16:42.</i></p>
+<p><i>Generated by EDoc, Mar 5 2010, 16:09:37.</i></p>
 </body>
 </html>
