@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Hextile RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#hextile-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -23,12 +24,15 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> 5.
 code() -> 5.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket, State) ->
     WLast = case W rem 16 of
@@ -66,6 +70,7 @@ read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket, State) 
                                                                 Box]),
     read(Tiles, Box, PF, Bytes, Socket, [], <<>>, State).
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(#pixel_format{bits_per_pixel = BPP}, _Box, Tiles, State) when is_list(Tiles) ->
     PixelSize = erlang:trunc(BPP / 8),
@@ -75,6 +80,7 @@ write(_PF, _, Data, State) ->
     ?ERROR("Invalid data for hextile encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, _State) -> ok.
 

@@ -2,7 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Listener process for RFB clients
-%%% @reference See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> by <a href="mailto:saleyn@gmail.com">Serge Aleynikov</a> for more information
+%%% @reference See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> for more information
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -14,6 +14,7 @@
 
 -behaviour(gen_server).
 
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
 %% -------------------------------------------------------------------
@@ -36,6 +37,9 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
+%% @spec start_link(ip(), integer(), integer()) -> {ok, pid()}
+%% @doc  Starts a new client listener
 -spec start_link(ip(), integer(), integer()) -> {ok, pid()}.
 start_link(Ip, Port, Backlog) -> 
     ?INFO("Starting RFB Client Listener...~n", []),
@@ -44,6 +48,7 @@ start_link(Ip, Port, Backlog) ->
 %% ====================================================================
 %% Callback functions
 %% ====================================================================
+%% @hidden
 -spec init({ip(), integer(), integer()}) -> {ok, #state{}} | {stop, term()}.
 init({Ip, Port, Backlog}) ->
     process_flag(trap_exit, true),
@@ -64,14 +69,17 @@ init({Ip, Port, Backlog}) ->
             {stop, Reason}
     end.
 
+%% @hidden
 -spec handle_call(any(), any(), #state{}) -> {stop, {unknown_call, any()}, #state{}}.
 handle_call(Request, _From, State) ->
     {stop, {unknown_call, Request}, State}.
 
+%% @hidden
 -spec handle_cast(any(), #state{}) -> {noreply, #state{}}.
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+%% @hidden
 -spec handle_info(any(), #state{}) -> {noreply, #state{}}.
 handle_info({inet_async, ListSock, Ref, {ok, CliSocket}},
             #state{listener = ListSock, acceptor = Ref} = State) ->
@@ -113,10 +121,13 @@ handle_info({inet_async, ListSock, Ref, Error},
 handle_info(_Info, State) ->
     {noreply, State}.
 
+%% @hidden
 -spec terminate(any(), #state{}) -> any().
 terminate(_Reason, _State) ->
     ?INFO("RFB listener terminated~n", []),
     ok.
+
+%% @hidden
 -spec code_change(any(), any(), any()) -> {ok, any()}.
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.

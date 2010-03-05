@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Raw RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#raw-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -23,12 +24,15 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> 0.
 code() -> 0.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(#pixel_format{bits_per_pixel = BPP},
      Box = #box{width = W, height = H},
@@ -48,6 +52,7 @@ read(#pixel_format{bits_per_pixel = BPP},
                 data       = RectBytes},
      RectBytes, Rest, State}.
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(#pixel_format{bits_per_pixel = BPP}, Box = #box{width = W, height = H},
       Data, State) ->
@@ -60,5 +65,6 @@ write(#pixel_format{bits_per_pixel = BPP}, Box = #box{width = W, height = H},
             {error, invalid_data, State}
     end.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, _State) -> ok.

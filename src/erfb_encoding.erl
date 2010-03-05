@@ -16,6 +16,8 @@
 %% ====================================================================
 -export([behaviour_info/1]).
 
+%% @spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}]
+%% @doc  Behaviour information
 -spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
 behaviour_info(callbacks) ->
     [{code,     0},

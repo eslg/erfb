@@ -2,7 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Listener process for RFB servers
-%%% @reference See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> by <a href="mailto:saleyn@gmail.com">Serge Aleynikov</a> for more information
+%%% @reference See <a href="http://www.trapexit.org/index.php/Building_a_Non-blocking_TCP_server_using_OTP_principles">this article</a> for more information
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -25,6 +25,7 @@
 %% Include files
 %% -------------------------------------------------------------------
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
 -record(state, {
@@ -37,16 +38,21 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% @spec start_link(#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}
+%% @doc  Starts a new server listerner
 -spec start_link(#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}.
 start_link(Session, Encodings, Ip, Port, Backlog) -> 
     ?INFO("Starting RFB Server Listener on ~p for:~n\t~p~n", [Port, Session]),
     gen_server:start_link(?MODULE, {Session, Encodings, Ip, Port, Backlog}, []).
 
+%% @spec stop(pid()) -> ok
+%% @doc  Stops a running listener
 -spec stop(pid()) -> ok.
 stop(Listener) ->
     ?INFO("Stopping RFB Server Listener~n", []),
     gen_server:call(Listener, stop).
 
+%% @hidden
 -spec prep_stop(pid(), term()) -> ok.
 prep_stop(Listener, Reason) ->
     ?INFO("Stopping RFB Server Listener: ~p~n", [Reason]),
@@ -55,6 +61,7 @@ prep_stop(Listener, Reason) ->
 %% ====================================================================
 %% Callback functions
 %% ====================================================================
+%% @hidden
 -spec init({#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()}) -> {ok, #state{}} | {stop, atom()}.
 init({Session, Encodings, Ip, Port, Backlog}) ->
     process_flag(trap_exit, true),
@@ -77,14 +84,17 @@ init({Session, Encodings, Ip, Port, Backlog}) ->
             {stop, Reason}
     end.
 
+%% @hidden
 -spec handle_call(any(), any(), #state{}) -> {stop, normal, ok, #state{}}.
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
+%% @hidden
 -spec handle_cast(any(), #state{}) -> {noreply, #state{}}.
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+%% @hidden
 -spec handle_info(any(), #state{}) -> {noreply, #state{}}.
 handle_info({inet_async, ListSock, Ref, {ok, SrvSocket}},
             #state{session  = Session,
@@ -129,6 +139,7 @@ handle_info({inet_async, ListSock, Ref, Error},
 handle_info(_Info, State) ->
     {noreply, State}.
 
+%% @hidden
 -spec terminate(_, #state{}) -> ok.
 terminate(Reason, #state{session = #session{server = ServerId,
                                             client = ClientId}}) ->
@@ -137,6 +148,8 @@ terminate(Reason, #state{session = #session{server = ServerId,
       #listener_disconnected{server = ServerId,
                              client = ClientId,
                              reason = Reason}).
+
+%% @hidden
 -spec code_change(any(), any(), any()) -> {ok, any()}.
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.

@@ -1,13 +1,15 @@
-%% @doc The timeout to wait for an event on any FSM (2 minutes, should be enough)
 -define(FSM_TIMEOUT, 120000).
-%% @doc The timeout to wait for the next part of an incoming message (A second should be more than enough)
 -define(COMPLETION_TIMEOUT, 5000).
 
+%% @type ip() = string() | {integer(), integer(), integer(), integer()}.  IP Address, either as a string or parsed.
 -type(ip() :: string() | {integer(), integer(), integer(), integer()}).
 
 %% == FSMS =====================================================================
+%% @type async_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}
 -type(async_state_result() :: {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {stop, term(), term()}).
+%% @type sync_state_result() = {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}
 -type(sync_state_result() :: {next_state, atom(), term()} | {next_state, atom(), term(), integer() | infinity} | {reply, any(), atom(), term()} | {reply, any(), atom(), term(), integer() | infinity} | {stop, term(), any(), term()} | {stop, term(), term()}).
+%% @type fsmref() = pid() | atom(). FSM Reference: a way to identify an ERFB client or server process
 -type(fsmref() :: pid() | atom()).
 
 %% == MAGIC NUMBERS ============================================================
@@ -48,6 +50,7 @@
                        green_shift      :: integer(),
                        blue_shift       :: integer()
                       }).
+%% @type security_kind() = none | {vnc, Password :: binary()}. The supported security types
 -type(security_kind() :: none | {vnc, binary()}).
 -record(session, {server = uuid:as_bstr()   :: binary(),
                   client = uuid:as_bstr()   :: binary(),
@@ -121,6 +124,7 @@
 -record(unknown_message, {?ERFB_EVENT_BASE,
                           type :: integer()}).
 
+%% @type server_event() = #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}
 -type(server_event() :: #server_connected{} | #server_disconnected{} | #set_colour_map_entries{} | #update{} | #bell{} | #server_cut_text{} | #unknown_message{}).
+%% @type client_event() = #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}
 -type(client_event() :: #client_connected{} | #listener_disconnected{} | #client_disconnected{} | #set_pixel_format{} | #set_encodings{} | #update_request{} | #key{} | #pointer{} | #client_cut_text{} | #unknown_message{}).
-

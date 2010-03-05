@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc RRE RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#rre-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -23,12 +24,15 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> 2.
 code() -> 2.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(#pixel_format{bits_per_pixel = BPP}, Box,
            <<Count:4/unit:8, Bytes/binary>>, Socket, State) ->
@@ -68,6 +72,7 @@ read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("RRE reader starting for ~p.  Not enough bytes~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(#pixel_format{bits_per_pixel = BPP}, _Box,
       #rre_data{background = Background,
@@ -91,5 +96,6 @@ write(_PF, _, Data, State) ->
     ?ERROR("Invalid data for rre encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, _State) -> ok.

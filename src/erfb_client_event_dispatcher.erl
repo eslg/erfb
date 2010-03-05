@@ -16,32 +16,52 @@
 -export([notify/1]).
 
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
+%% @type event_handler() = atom() | {atom(), Id :: term()}.  A module to handler events.
 -type(event_handler() :: Module :: atom() | {Module :: atom(), Id :: term()}).
 %% ====================================================================
 %% External functions
 %% ====================================================================
+
+%% @spec start_link() -> {ok, pid()}
+%% @doc  Starts a new event dispatcher
 -spec start_link() -> {ok, pid()}.
 start_link() ->
     gen_event:start_link({local, ?MODULE}).
 
+%% @spec subscribe_link(event_handler(), term()) -> ok | {'EXIT', term()} | term()
+%% @doc  Subscribes and links a handler to the event dispatcher
+%% @see  gen_event:add_sup_handler/3
 -spec subscribe_link(event_handler(), term()) -> ok | {'EXIT', term()} | term(). 
 subscribe_link(EventHandler, InitArgs) ->
     gen_event:add_sup_handler(?MODULE, EventHandler, InitArgs).
 
+%% @spec subscribe(event_handler(), term()) -> ok | {'EXIT', term()} | term()
+%% @doc  Subscribes a handler to the event dispatcher
+%% @see  gen_event:add_handler/3
 -spec subscribe(event_handler(), term()) -> ok | {'EXIT', term()} | term(). 
 subscribe(EventHandler, InitArgs) ->
     gen_event:add_handler(?MODULE, EventHandler, InitArgs).
 
+%% @spec unsubscribe(event_handler(), term()) -> term() | {error, module_not_found} | {'EXIT', term()}
+%% @doc  Unsubscribes a handler from the event dispatcher
+%% @see  gen_event:delete_handler/3
 -spec unsubscribe(event_handler(), term()) -> term() | {error, module_not_found} | {'EXIT', term()}.
 unsubscribe(EventHandler, Args) ->
     gen_event:delete_handler(?MODULE, EventHandler, Args).
 
+%% @spec subscriptions() -> [event_handler()]
+%% @doc  Returns the list of subscriptions
+%% @see  gen_event:which_handlers/1
 -spec subscriptions() -> [event_handler()].
 subscriptions() ->
     gen_event:which_handlers(?MODULE).
 
+%% @spec notify(server_event()) -> ok
+%% @doc  Sends an event to the subscribed handlers
+%% @see  gen_event:notify/2
 -spec notify(server_event()) -> ok.
 notify(Event) ->
     ?DEBUG("Notifying ~p~n", [element(1, Event)]),

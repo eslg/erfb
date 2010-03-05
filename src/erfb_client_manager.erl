@@ -19,10 +19,14 @@
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% @spec start_link() -> ignore | {error, term()} | {ok, pid()}
+%% @doc  Starts the supervisor process
 -spec start_link() -> ignore | {error, term()} | {ok, pid()}.
 start_link() -> 
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%% @spec start_client() -> {ok, pid() | undefined} | {error, term()}
+%% @doc  Starts a new client process
 -spec start_client() -> {ok, pid() | undefined} | {error, term()}.
 start_client() ->
     supervisor:start_child(?MODULE, []).
@@ -30,6 +34,8 @@ start_client() ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+
+%% @hidden
 -spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
@@ -37,6 +43,7 @@ prep_stop(State) ->
        {_, Pid, _, [Module]} <- supervisor:which_children(?MODULE),
        lists:member({prep_stop, 2}, Module:module_info(exports))].
 
+%% @hidden
 -spec init([]) -> {ok, {{simple_one_for_one, 100, 1}, [{undefined, {erfb_client_process, start_link, []}, temporary, 5000, worker, [erfb_client_process]}]}}.
 init([]) ->
     {ok,

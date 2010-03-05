@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc DesktopSize RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#desktopsize-pseudo-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -23,12 +24,15 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> -223.
 code() -> -223.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(_PF, Box, Bytes, _Socket, State) ->
     ?DEBUG("Desktop Size reader starting for ~p.~n", [Box]),
@@ -38,6 +42,7 @@ read(_PF, Box, Bytes, _Socket, State) ->
                 data       = undefined},
      <<>>, Bytes, State}.
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(_PF, _Box, undefined, State) ->
     {ok, <<>>, State};
@@ -45,5 +50,6 @@ write(_PF, _Box, Data, State) ->
     ?ERROR("Invalid data for desktop_size encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, _State) -> ok.

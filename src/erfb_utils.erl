@@ -15,8 +15,14 @@
          pf_to_binary/1, timestamp/0, floor/1, ceiling/1]).
 
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
+%% @spec get_full_string(binary(), port()) -> {Result :: binary(), Rest :: binary()}
+%% @doc  Gets the complete string from its prefix and the socket.
+%%       The first 32 bits in RFB prtocol strings tell the length of the string.  This function reads
+%%       all the bytes it needs from the socket until the string is complete and returns any extra
+%%       byte read if there were enough bytes already in the stream
 -spec get_full_string(binary(), port()) -> {binary(), binary()}.
 get_full_string(<<Length:4/unit:8, Rest/binary>> = String, S) ->
     ?DEBUG("Getting full string from: ~p~n", [String]),
@@ -29,11 +35,18 @@ get_full_string(<<Length:4/unit:8, Rest/binary>> = String, S) ->
             {complete(Rest, Length, S), <<>>}
     end.
 
-%% @doc This function *must* be always invoked with a pasive socket!
+%% @spec complete(binary(), integer(), port()) -> binary() | timeout
+%% @doc  Completes Prefix until it gets FullLength bytes from the Socket.
+%%       <em>Note:</em> This function *must* be always invoked with a pasive socket
 -spec complete(binary(), integer(), port()) -> binary() | timeout.
 complete(Prefix, FullLength, Socket) ->
     complete(Prefix, FullLength, Socket, false).
 
+%% @spec complete(binary(), integer(), port(), boolean()) -> binary() | timeout
+%% @doc  Completes Prefix until it gets FullLength bytes from the Socket.
+%%       If it takes more than 5 seconds, and ThrowException is true, throws a
+%%       timeout exception, otherwise returns <code>timeout</code>
+%%       <em>Note:</em> This function *must* be always invoked with a pasive socket
 -spec complete(binary(), integer(), port(), boolean()) -> binary() | timeout.
 complete(Prefix, FullLength, Socket, TrhowException) ->
     case FullLength - bstr:len(Prefix) of
@@ -55,11 +68,15 @@ complete(Prefix, FullLength, Socket, TrhowException) ->
             Result
     end.
 
+%% @spec build_string(binary()) -> binary()
+%% @doc  Converts a binary string into an RFB string: <code> &lt;&lt;Length:4/integer-unit:8, String/binary&gt;&gt; </code>
 -spec build_string(binary()) -> binary().
 build_string(String) ->
     Length = bstr:len(String),
     <<Length:4/integer-unit:8, String/binary>>.
 
+%% @spec pf_to_binary(#pixel_format{}) -> binary()
+%% @doc  Converts a <code>#pixel_format{}</code> record into its binary form
 -spec pf_to_binary(#pixel_format{}) -> binary().
 pf_to_binary(#pixel_format{bits_per_pixel = PFBits,
                            depth          = PFDepth,
@@ -91,6 +108,8 @@ pf_to_binary(#pixel_format{bits_per_pixel = PFBits,
       PFBlueShift:1/unit:8,
       0:3/unit:8>>.
 
+%% @spec floor(float()) -> integer()
+%% @doc  Returns the floor (next smallest integer) of <code>X</code>
 -spec floor(float()) -> integer().
 floor(X) ->
     T = erlang:trunc(X),
@@ -100,6 +119,8 @@ floor(X) ->
         _ -> T
     end.
 
+%% @spec ceiling(float()) -> integer()
+%% @doc  Returns the ceiling (next bigest integer) of <code>X</code>
 -spec ceiling(float()) -> integer().
 ceiling(X) ->
     T = erlang:trunc(X),
@@ -109,6 +130,8 @@ ceiling(X) ->
         _ -> T
     end.
 
+%% @spec timestamp() -> non_neg_integer()
+%% @doc  Returns the current timestamp in POSIX usecs
 -spec timestamp() -> non_neg_integer().
 timestamp() ->
     {Mgs,S,Ms} = erlang:now(),

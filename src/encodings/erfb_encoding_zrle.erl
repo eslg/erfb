@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc ZRLE RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#zrle-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -24,15 +25,18 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> 16.
 code() -> 16.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() ->
     Z = zlib:open(),
     {ok, #state{zstream     = Z,
                 state       = undefined}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(_PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
@@ -65,6 +69,7 @@ read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("ZRLE reader starting for ~p.  Not enough bytes~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(_PF, _Box, Data,
       State = #state{zstream    = Z,
@@ -81,6 +86,7 @@ write(_PF, _Box, Data,
     FinalData = bstr:bstr(zlib:deflate(Z, Data, sync)), %%TODO: Just the last rect. should be sync flushed
     {ok, erfb_utils:build_string(FinalData), State#state{state = writing}}.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, #state{zstream   = Z}) ->
     zlib:close(Z).

@@ -22,6 +22,7 @@
          client_disconnected/2, key/3, pointer/4, client_cut_text/2]).
 
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
 -record(state,  {socket         :: port(),
@@ -32,48 +33,71 @@
 %% External functions
 %% ====================================================================
 %% -- General ---------------------------------------------------------
+%% @hidden
 -spec start_link() -> {ok, pid()}.
 start_link() ->
     gen_fsm:start_link(?MODULE, [], []).
 
+%% @hidden
 -spec set_socket(pid(), port()) -> ok.
 set_socket(Pid, Socket) ->
     gen_fsm:send_event(Pid, {socket_ready, Socket}).
 
+%% @hidden
 -spec prep_stop(fsmref(), term()) -> ok.
 prep_stop(Server, Reason) ->
     client_disconnected(Server, Reason).
 
 %% -- Client -> Server messages ---------------------------------------
+%% @spec send_event(fsmref(), client_event()) -> ok
+%% @doc  Sends an client event to the server.  The event may be one of the following ones (each one represented with a corresponding record):
+%%       <ul><li>client_connected</li><li>listener_disconnected</li><li>client_disconnected</li>
+%%           <li>set_pixel_format</li><li>set_encodings</li><li>update_request</li><li>key</li>
+%%           <li>pointer</li><li>client_cut_text</li></ul>
+%%       For a description of the events, check the <a href="http://www.tigervnc.com/cgi-bin/rfbproto#client-to-server-messages">RFB Protocol Definition</a>
 -spec send_event(fsmref(), client_event()) -> ok.
 send_event(Client, Event) ->
     ok = gen_fsm:sync_send_event(Client, Event).
 
+%% @spec set_pixel_format(Client::fsmref(), PixelFormat::#pixel_format{}) -> ok
+%% @equiv send_event(Client, #set_pixel_format{pixel_format = PixelFormat})
 -spec set_pixel_format(fsmref(), #pixel_format{}) -> ok.
 set_pixel_format(Client, PixelFormat) ->
     send_event(Client, #set_pixel_format{pixel_format = PixelFormat}).
 
+%% @spec set_encodings(fsmref(), [atom()]) -> ok
+%% @equiv send_event(Client, #set_encodings{encodings = Encodings})
 -spec set_encodings(fsmref(), [atom()]) -> ok.
 set_encodings(Client, Encodings) ->
     send_event(Client, #set_encodings{encodings = Encodings}).
 
+%% @spec update_request(fsmref(), boolean(), #box{}) -> ok
+%% @equiv send_event(Client, #update_request{incremental = Incremental, box = Box})
 -spec update_request(fsmref(), boolean(), #box{}) -> ok.
 update_request(Client, Incremental, Box) ->
     send_event(Client, #update_request{incremental = Incremental,
                                        box         = Box}).
 
+%% @spec key(fsmref(), boolean(), integer()) -> ok
+%% @equiv send_event(Server, #key{down = Down, code = Code})
 -spec key(fsmref(), boolean(), integer()) -> ok.
 key(Server, Down, Code) ->
     send_event(Server, #key{down = Down, code = Code}).
 
+%% @spec pointer(fsmref(), byte(), integer(), integer()) -> ok
+%% @equiv send_event(Server, #pointer{button_mask = ButtonMask, x = X, y = Y})
 -spec pointer(fsmref(), byte(), integer(), integer()) -> ok.
 pointer(Server, ButtonMask, X, Y) ->
     send_event(Server, #pointer{button_mask = ButtonMask, x = X, y = Y}).
 
+%% @spec client_cut_text(fsmref(), binary()) -> ok
+%% @equiv send_event(Server, #client_cut_text{text = Text})
 -spec client_cut_text(fsmref(), binary()) -> ok.
 client_cut_text(Server, Text) ->
     send_event(Server, #client_cut_text{text = Text}).
 
+%% @spec client_disconnected(fsmref(), Reason::term()) -> ok
+%% @equiv send_event(Server, #client_disconnected{reason = Reason})
 -spec client_disconnected(fsmref(), term()) -> ok.
 client_disconnected(Server, Reason) ->
     send_event(Server, #client_disconnected{reason = Reason}).
@@ -81,6 +105,7 @@ client_disconnected(Server, Reason) ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec init([]) -> {ok, wait_for_socket, #state{}, ?FSM_TIMEOUT}.
 init([]) ->
     process_flag(trap_exit, true),
@@ -91,6 +116,7 @@ init([]) ->
                           State}]}, ?FSM_TIMEOUT}.
 
 %% ASYNC EVENTS -------------------------------------------------------
+%% @hidden
 -spec wait_for_socket(term(), #state{}) -> async_state_result().
 wait_for_socket({socket_ready, Socket}, State) ->
     % Now we own the socket
@@ -113,6 +139,7 @@ wait_for_socket(Other, State) ->
     %% Allow to receive async messages
     {next_state, wait_for_socket, State, ?FSM_TIMEOUT}.
 
+%% @hidden
 -spec wait_for_handshake(term(), #state{}) -> async_state_result().
 wait_for_handshake({data, <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., MinorStr:3/binary, $\n>>},
                    State = #state{socket = S}) ->
@@ -151,6 +178,7 @@ wait_for_handshake(Event, State) ->
 
 %%NOTE: We allow only security type 1 - None because we're strictly using the
 %%      Server -> Client model for our connections.
+%% @hidden
 -spec wait_for_security(term(), #state{}) -> async_state_result().
 wait_for_security({data, <<?SECURITY_INVALID:4/unit:8, Rest/binary>>},
                   State = #state{session = #session{version = ?MIN_VERSION}}) ->
@@ -195,6 +223,7 @@ wait_for_security(Event, State) ->
     ?ERROR("Unexpected Event: ~p~n", [Event]),
     {stop, {unexpected_event, Event}, State}.
 
+%% @hidden
 -spec wait_for_security_result(term(), #state{}) -> async_state_result().
 wait_for_security_result({data, <<?SECURITY_RESULT_OK:4/unit:8>>}, State) ->
     ?DEBUG("Security passed :)~n", []),
@@ -214,6 +243,7 @@ wait_for_security_result(Event, State) ->
     ?ERROR("Unexpected Event: ~p~n", [Event]),
     {stop, {unexpected_event, Event}, State}.
 
+%% @hidden
 -spec wait_for_server_init(term(), #state{}) -> async_state_result().
 wait_for_server_init({data, <<BufferWidth:2/unit:8,
                               BufferHeight:2/unit:8,
@@ -264,6 +294,7 @@ wait_for_server_init(Event, State) ->
     ?ERROR("Unexpected Event: ~p~n", [Event]),
     {stop, {unexpected_event, Event}, State}.
 
+%% @hidden
 -spec running({'data',<<_:8,_:_*8>>}, #state{}) -> {next_state, running, #state{}}.
 running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/binary>>}, State) ->
     <<Length:2/unit:8, Rest/binary>> = FramebufferUpdate,
@@ -361,6 +392,7 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
                             raw_data= Data}),
     {next_state, running, State}.
 
+%% @hidden
 -spec running(term(), term(), #state{}) -> sync_state_result().
 running(#set_pixel_format{pixel_format  = PF,
                           raw_data      = RawData},
@@ -504,6 +536,7 @@ running(#client_disconnected{reason = Reason}, _From, State) ->
     ?INFO("Client disconnected: ~p~n", [Reason]),
     {stop, normal, ok, State}.
 
+%% @hidden
 -spec server_failed(term(), #state{}) -> async_state_result().
 server_failed(timeout, State) ->
     ?ERROR("Timeout~n", []),
@@ -513,14 +546,17 @@ server_failed(Event, State) ->
     {stop, {unexpected_event, Event}, State}.
 
 %% OTHER EVENTS -------------------------------------------------------
+%% @hidden
 -spec handle_event(term(), atom(), #state{}) -> async_state_result().
 handle_event(Event, StateName, StateData) ->
     {stop, {StateName, undefined_event, Event}, StateData}.
 
+%% @hidden
 -spec handle_sync_event(term(), term(), atom(), #state{}) -> sync_state_result().
 handle_sync_event(Event, _From, StateName, StateData) ->
     {stop, {StateName, undefined_event, Event}, StateData}.
 
+%% @hidden
 -spec handle_info(term(), atom(), #state{}) -> async_state_result().
 handle_info({tcp, Socket, Bin}, StateName, #state{socket = Socket} = StateData) ->
     % Flow control: enable forwarding of next TCP message
@@ -537,6 +573,7 @@ handle_info({tcp_closed, Socket}, _StateName,
 handle_info(_Info, StateName, StateData) ->
     {noreply, StateName, StateData}.
 
+%% @hidden
 -spec terminate(term(), atom(), #state{}) -> ok.
 terminate(Reason, _StateName, #state{socket     = Socket,
                                      session    = #session{server = ServerId,
@@ -551,6 +588,8 @@ terminate(Reason, _StateName, #state{socket     = Socket,
            #server_disconnected{server = ServerId,
                                 client = ClientId,
                                 reason = Reason}).
+
+%% @hidden
 -spec code_change(term(), atom(), #state{}, any()) -> {ok, atom(), #state{}}.
 code_change(_OldVsn, StateName, StateData, _Extra) ->
     {ok, StateName, StateData}.

@@ -15,15 +15,20 @@
 -export([start_link/0, start_server/2, init/1, prep_stop/1]).
 
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
+%% @spec start_link() -> {ok, pid()}
+%% @doc  Starts the supervisor process
 -spec start_link() -> {ok, pid()}.
 start_link() -> 
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%% @spec start_server(#session{}, [atom()]) -> {ok, pid() | undefined} | {error, term()}
+%% @doc  Starts a new server process
 -spec start_server(#session{}, [atom()]) -> {ok, pid() | undefined} | {error, term()}.
 start_server(Session, Encodings) ->
     supervisor:start_child(?MODULE, [Session, Encodings]).
@@ -31,6 +36,7 @@ start_server(Session, Encodings) ->
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec prep_stop(_) -> [any()].
 prep_stop(State) ->
     ?INFO("Preparing to stop~n\tChildren: ~p~n", [supervisor:which_children(?MODULE)]),
@@ -38,6 +44,7 @@ prep_stop(State) ->
        {_, Pid, _, [Module]} <- supervisor:which_children(?MODULE),
        lists:member({prep_stop, 2}, Module:module_info(exports))].
 
+%% @hidden
 -spec init([]) -> {ok, {{simple_one_for_one, 100, 1}, [{undefined, {erfb_server, start_link, []}, temporary, 5000, worker, [erfb_server]}]}}.
 init([]) ->
     {ok,

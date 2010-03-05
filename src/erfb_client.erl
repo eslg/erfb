@@ -15,6 +15,7 @@
 -export([start_link/3, init/1, prep_stop/1]).
 
 -include("erfblog.hrl").
+%% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
 %% @spec start_link(ip(), integer(), integer()) -> {ok, pid()}

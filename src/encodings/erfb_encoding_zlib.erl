@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc ZLib RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#zlib-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -25,9 +26,11 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> 6.
 code() -> 6.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() ->
     Z = zlib:open(),
@@ -36,6 +39,7 @@ init() ->
                 state       = undefined,
                 raw_state   = RawState}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, <<_:32,_:_*8>>, Rest::binary(), #state{}}.
 read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
@@ -73,6 +77,7 @@ read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("ZLIB reader starting for ~p.  Not enough bytes~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, <<_:32,_:_*8>>, #state{}} | {error, invalid_data, #state{}}.
 write(PF, Box, Data,
       State = #state{zstream    = Z,
@@ -98,6 +103,7 @@ write(PF, Box, Data,
                                               raw_state = NewRawState}}
     end.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(Reason, #state{zstream   = Z,
                          raw_state = RawState}) ->

@@ -2,6 +2,7 @@
 %%% @author Fernando Benavides <fbenavides@novamens.com>
 %%% @copyright (C) 2010 Novamens S.A.
 %%% @doc Cursor RFB Encoding implementation
+%%% @reference <a href="http://www.tigervnc.com/cgi-bin/rfbproto#cursor-pseudo-encoding">More Information</a>
 %%% @end
 %%%
 %%% This source file is subject to the New BSD License. You should have received
@@ -23,12 +24,15 @@
 %% ====================================================================
 %% Server functions
 %% ====================================================================
+%% @hidden
 -spec code() -> -239.
 code() -> -239.
 
+%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
+%% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read(#pixel_format{bits_per_pixel = BPP},
      Box = #box{width = W, height = H},
@@ -53,6 +57,7 @@ read(#pixel_format{bits_per_pixel = BPP},
                                           bitmask= Mask}},
      Read, Rest, State}.
 
+%% @hidden
 -spec write(#pixel_format{}, #box{}, #cursor_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(#pixel_format{bits_per_pixel = BPP},
       Box = #box{width = W, height = H},
@@ -68,5 +73,6 @@ write(#pixel_format{bits_per_pixel = BPP},
             {error, invalid_data, State}
     end.
 
+%% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, _State) -> ok.
