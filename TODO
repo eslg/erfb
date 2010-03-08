@@ -3,8 +3,6 @@ Features:
 
 Encodings:
     Missing ones:
-    -23  < -32  - JPEG Quality Level -> http://www.tigervnc.com/cgi-bin/rfbproto#jpeg-quality-level-pseudo-encoding
-    -247 < -256 - Compression Level
         -307    - DesktopName Pseudo-encoding
         8       - zlibhex
         7       - Tight
