@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -25,15 +25,11 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> 2.
-code() -> 2.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rre_data{}, Read::binary(), Rest::binary(), #state{}}.
 read(#pixel_format{bits_per_pixel = BPP}, Box,
            <<Count:4/unit:8, Bytes/binary>>, Socket, State) ->
     PixelSize = erlang:trunc(BPP / 8),
@@ -53,7 +49,6 @@ read(#pixel_format{bits_per_pixel = BPP}, Box,
                                    y = Y,
                                    width = W,
                                    height = H},
-                    encoding= ?MODULE,
                     data    = Pixel} ||
                    <<Pixel:PixelSize/unit:8,
                      X:2/unit:8,
@@ -61,10 +56,8 @@ read(#pixel_format{bits_per_pixel = BPP}, Box,
                      W:2/unit:8,
                      H:2/unit:8>> <= RectBytes],
     {ok,
-     #rectangle{box        = Box,
-                encoding   = ?MODULE,
-                data       = #rre_data{background = Background,
-                                       rectangles = Rects}},
+     #rre_data{background = Background,
+               rectangles = Rects},
     <<Count:4/unit:8, Background:PixelSize/unit:8, RectBytes/binary>>,
     bstr:substr(AllBytes, Length + 1),
     State};
@@ -89,7 +82,6 @@ write(#pixel_format{bits_per_pixel = BPP}, _Box,
                                      y = Y,
                                      width = W,
                                      height = H},
-                      encoding= ?MODULE,
                       data    = Pixel} <- Rects >>,
     {ok, <<Count:4/unit:8, Background:PixelSize/unit:8, RectBytes/binary>>, State};
 write(_PF, _, Data, State) ->

@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -26,29 +26,20 @@
 %% ====================================================================
 
 %% @hidden
--spec code() -> 1.
-code() -> 1.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: {integer(), integer()}, Read::binary(), Rest::binary(), #state{}}.
 read(_PF, Box, <<X:4/unit:8, Y:4/unit:8, Rest/binary>>, _Socket, State) ->
     ?DEBUG("CopyRect reader starting for ~p.  Result: {~p, ~p}~n", [Box, X, Y]),
-    {ok,
-     #rectangle{box        = Box,
-                encoding   = ?MODULE,
-                data       = {X, Y}},
-     <<X:4/unit:8, Y:4/unit:8>>,
-     Rest, State};
+    {ok, {X, Y}, <<X:4/unit:8, Y:4/unit:8>>, Rest, State};
 read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("CopyRect reader starting for ~p.  Not enough bytes.~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 8, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+-spec write(#pixel_format{}, #box{}, term(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(_PF, _Box, {X, Y}, State) ->
     {ok, <<X:4/unit:8, Y:4/unit:8>>, State};
 write(_PF, _, Data, State) ->

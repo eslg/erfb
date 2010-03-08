@@ -27,9 +27,9 @@
 start_link() -> 
 	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% @spec start_server(#session{}, [atom()]) -> {ok, pid() | undefined} | {error, term()}
+%% @spec start_server(#session{}, [{Code :: integer(), Module :: atom()}]) -> {ok, pid() | undefined} | {error, term()}
 %% @doc  Starts a new server process
--spec start_server(#session{}, [atom()]) -> {ok, pid() | undefined} | {error, term()}.
+-spec start_server(#session{}, [{integer(), atom()}]) -> {ok, pid() | undefined} | {error, term()}.
 start_server(Session, Encodings) ->
     supervisor:start_child(?MODULE, [Session, Encodings]).
 

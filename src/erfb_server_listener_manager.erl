@@ -28,9 +28,9 @@
 start_link() -> 
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% @spec start_listener(#session{}, [atom()], ip(), integer(), integer()) -> {ok, pid() | undefined} | {error, term()}
+%% @spec start_listener(#session{}, [{integer(), atom()}], ip(), integer(), integer()) -> {ok, pid() | undefined} | {error, term()}
 %% @doc  Starts a new listener process
--spec start_listener(#session{}, [atom()], ip(), integer(), integer()) -> {ok, pid() | undefined} | {error, term()}.
+-spec start_listener(#session{}, [{integer(), atom()}], ip(), integer(), integer()) -> {ok, pid() | undefined} | {error, term()}.
 start_listener(Session, Encodings, Ip, Port, Backlog) ->
     supervisor:start_child(?MODULE, [Session, Encodings, Ip, Port, Backlog]).
 

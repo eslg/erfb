@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -25,15 +25,11 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> 0.
-code() -> 0.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: binary(), Read::binary(), Rest::binary(), #state{}}.
 read(#pixel_format{bits_per_pixel = BPP},
      Box = #box{width = W, height = H},
      Bytes, Socket, State) ->
@@ -46,11 +42,7 @@ read(#pixel_format{bits_per_pixel = BPP},
             _ ->
                 {bstr:substr(Bytes, 1, Length), bstr:substr(Bytes, Length+1)}
         end,
-    {ok,
-     #rectangle{box        = Box,
-                encoding   = ?MODULE,
-                data       = RectBytes},
-     RectBytes, Rest, State}.
+    {ok, RectBytes, RectBytes, Rest, State}.
 
 %% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.

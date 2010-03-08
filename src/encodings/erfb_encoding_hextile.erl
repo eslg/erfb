@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -25,15 +25,11 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> 5.
-code() -> 5.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, [#rectangle{}], Read::binary(), Rest::binary(), #state{}}.
 read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket, State) ->
     WLast = case W rem 16 of
                 0 -> 16;
@@ -91,13 +87,7 @@ terminate(_Reason, _State) -> ok.
 -spec read([#box{}], #box{}, #pixel_format{}, binary(), port(), [#rectangle{}], binary(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
 read([], OutsideBox, _PF, Rest, _Socket, Tiles, Read, State) ->
     ?TRACE("Last: ~p~nAll boxes read~n", [{(hd(Tiles))#rectangle.box, (hd(Tiles))#rectangle.encoding}]),
-    {ok,
-     #rectangle{box      = OutsideBox,
-                encoding = ?MODULE,
-                data     = lists:reverse(Tiles)},
-     Read,
-     Rest,
-     State};
+    {ok, lists:reverse(Tiles), Read, Rest, State};
 read(Boxes, OutsideBox, PF, <<>>, Socket, Tiles, BytesRead, State) ->
     ?TRACE("Empty Stream, missing ~p boxes...~n", [erlang:length(Boxes)]),
     read(Boxes, OutsideBox, PF, erfb_utils:complete(<<>>, 1, Socket, true),
@@ -127,7 +117,9 @@ read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
                 erfb_encoding_raw:read(PF, Box, Bytes, Socket, RawState),
             ok = erfb_encoding_raw:terminate(normal, NewRawState),
             read(
-              Boxes, OutsideBox, PF, Rest, Socket, [Tile | Tiles],
+              Boxes, OutsideBox, PF, Rest, Socket, [#rectangle{box = Box,
+                                                               encoding = ?ENCODING_RAW,
+                                                               data = Tile} | Tiles],
               <<BytesRead/binary, Byte/binary, Read/binary>>,
               State);
         0 ->
@@ -192,7 +184,6 @@ read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
               Boxes, OutsideBox, PF,
               bstr:substr(AllRest, BodyLength + 1), Socket,
               [#rectangle{box     = Box,
-                          encoding= ?MODULE,
                           data    =
                               #hextile_data{background = Background,
                                             foreground = Foreground,
@@ -207,7 +198,6 @@ hextile_subreader(Body, PixelSize, 1) ->
                                y = Y,
                                width = W+1,
                                height = H+1},
-                encoding= ?MODULE,
                 data    = Pixel} ||
                <<Pixel:PixelSize/unit:8,
                  X:1/unit:4,
@@ -218,20 +208,18 @@ hextile_subreader(Body, _PixelSize, 0) ->
     [#rectangle{box     = #box{x = X,
                                y = Y,
                                width = W+1,
-                               height = H+1},
-                encoding= ?MODULE} ||
+                               height = H+1}} ||
                <<X:1/unit:4,
                  Y:1/unit:4,
                  W:1/unit:4,
                  H:1/unit:4>> <= Body].
 
 -spec write(#rectangle{}, integer()) -> binary().
-write(#rectangle{encoding = erfb_encoding_raw, data = Data}, _PixelSize) ->
+write(#rectangle{encoding = ?ENCODING_RAW, data = Data}, _PixelSize) ->
     <<1:1/unit:8, Data/binary>>;
-write(#rectangle{encoding = ?MODULE,
-                          data = #hextile_data{background = Background,
-                                               foreground = Foreground,
-                                               rectangles = Rectangles}},
+write(#rectangle{data = #hextile_data{background = Background,
+                                      foreground = Foreground,
+                                      rectangles = Rectangles}},
                PixelSize) ->
     ForegroundSpecified =
         case Foreground of
@@ -288,5 +276,4 @@ write(#rectangle{encoding = ?MODULE,
                                           y = Y,
                                           width = W,
                                           height = H},
-                               encoding = ?MODULE,
                                data = Pixel} <- Rectangles]]).

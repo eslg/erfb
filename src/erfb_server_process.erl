@@ -27,14 +27,14 @@
 -record(state,  {socket         :: port(),
                  session        :: #session{},
                  vnc_challenge  :: binary(),
-                 encodings = [] :: [{Module :: atom(), Code :: integer(), State :: term()}]}).
+                 encodings = [] :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
 %% -- General ---------------------------------------------------------
 %% @hidden
--spec start_link(#session{}, [atom()]) -> {ok, pid()}.
+-spec start_link(#session{}, [{integer(), atom()}]) -> {ok, pid()}.
 start_link(Server, Encodings) ->
     gen_fsm:start_link(?MODULE, {Server, Encodings}, []).
 
@@ -93,15 +93,15 @@ server_disconnected(Server, Reason) ->
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec init({undefined | #session{}, [atom()]}) -> {ok, wait_for_socket, #state{}, ?FSM_TIMEOUT}.
+-spec init({undefined | #session{}, [{integer(), atom()}]}) -> {ok, wait_for_socket, #state{}, ?FSM_TIMEOUT}.
 init({Session, EncodingMods}) ->
     process_flag(trap_exit, true),
     _Seed = random:seed(erlang:now()),
-    PreEncodings = [{EMod, EMod:code(), not_initialized} || EMod <- EncodingMods],
+    PreEncodings = [{ECod, EMod, not_initialized} || {ECod, EMod} <- EncodingMods],
     {ok, State} = erfb_encoding_raw:init(),
-    Encodings = lists:keystore(erfb_encoding_raw, 1, PreEncodings,
-                               {erfb_encoding_raw,
-                                erfb_encoding_raw:code(),
+    Encodings = lists:keystore(?ENCODING_RAW, 1, PreEncodings,
+                               {?ENCODING_RAW,
+                                erfb_encoding_raw,
                                 State}),
     {ok, wait_for_socket, #state{session    = Session,
                                  encodings  = Encodings}, ?FSM_TIMEOUT}.
@@ -353,12 +353,12 @@ running({data, <<?MSG_SET_ENCODINGS, _Padding:1/unit:8, SetEncodings/binary>>},
                 end
         end,
     Encodings =
-        [lists:keyfind(Code, 2, CurrentEncodings) ||
+        [lists:keyfind(Code, 1, CurrentEncodings) ||
            <<Code:4/signed-unit:8>> <= EncodingsStr,
-           false =/= lists:keyfind(Code, 2, CurrentEncodings)],
+           false =/= lists:keyfind(Code, 1, CurrentEncodings)],
     Unrecognized =
         [Code || <<Code:4/signed-unit:8>> <= EncodingsStr,
-           false =:= lists:keyfind(Code, 2, CurrentEncodings)],
+           false =:= lists:keyfind(Code, 1, CurrentEncodings)],
     ?INFO("Unrecognized encodings: ~p~n", [Unrecognized]),
 
     FinalEncodings =
@@ -367,21 +367,21 @@ running({data, <<?MSG_SET_ENCODINGS, _Padding:1/unit:8, SetEncodings/binary>>},
                             %%      if they don't specify it in the list
                             %%      and it was already initialized
                             [E | Acc];
-                       ({EMod, ECode, not_initialized} = E, Acc) ->
-                            case lists:keymember(EMod, 1, Encodings) of
+                       ({ECode, EMod, not_initialized} = E, Acc) ->
+                            case lists:keymember(ECode, 1, Encodings) of
                                 true ->
                                     {ok, EState} = EMod:init(),
-                                    [{EMod, ECode, EState} | Acc];
+                                    [{ECode, EMod, EState} | Acc];
                                 false ->
                                     [E | Acc]
                             end;
-                       ({EMod, ECode, EState} = E, Acc) ->
-                            case lists:keymember(EMod, 1, Encodings) of
+                       ({ECode, EMod, EState} = E, Acc) ->
+                            case lists:keymember(ECode, 1, Encodings) of
                                 true ->
                                     [E | Acc];
                                 false ->
                                     ok = EMod:terminate(normal, EState),
-                                    [{EMod, ECode, not_initialized} | Acc]
+                                    [{ECode, EMod, not_initialized} | Acc]
                             end
                     end, [], CurrentEncodings),
 
@@ -392,7 +392,7 @@ running({data, <<?MSG_SET_ENCODINGS, _Padding:1/unit:8, SetEncodings/binary>>},
                                          _Padding:1/unit:8,
                                          Length:2/unit:8,
                                          EncodingsStr/binary>>,
-                          encodings  = [EMod || {EMod, _, _} <- Encodings]}),
+                          encodings  = [{ECode, EMod} || {ECode, EMod, _} <- Encodings]}),
 
     case bstr:len(NextMessage) of
         0 ->
@@ -590,7 +590,7 @@ terminate(Reason, _StateName, #state{socket     = Socket,
     lists:foreach(
       fun({_, _, not_initialized}) ->
               void;
-         ({EMod, _, EState}) ->
+         ({_, EMod, EState}) ->
               (catch EMod:terminate(Reason, EState))
       end, Encodings),
     erfb_server_event_dispatcher:notify(
@@ -616,24 +616,24 @@ vnc_security(State = #state{socket = S}) ->
 -spec write_rectangle(#pixel_format{}, #rectangle{}, #state{}) -> {binary(), #state{}}.
 write_rectangle(PF,
                 #rectangle{box      = Box,
-                           encoding = EncodingMod,
+                           encoding = ECode,
                            data     = Data},
                 State = #state{encodings = Encodings}) ->
-    {EMod, ECode, EState} =
-        case lists:keyfind(EncodingMod, 1, Encodings) of
+    {ECode, EMod, EState} =
+        case lists:keyfind(ECode, 1, Encodings) of
             false ->
-                ?ERROR("Unknown Encoding ~p.  Not found in: ~p~n", [EncodingMod, Encodings]),
-                throw({stop, {unknown_encoding, EncodingMod}, State});
-            {EM, EC, not_initialized} ->
+                ?ERROR("Unknown Encoding ~p.  Not found in: ~p~n", [ECode, Encodings]),
+                throw({stop, {unknown_encoding, ECode}, State});
+            {EC, EM, not_initialized} ->
                 {ok, FirstEState} = EM:init(),
-                {EM, EC, FirstEState};
+                {EC, EM, FirstEState};
             Enc ->
                 Enc
         end,
     try EMod:write(PF, Box, Data, EState) of
         {ok, EncodedData, NewEState} -> 
             NewEncodings =
-                lists:keystore(EMod, 1, Encodings, {EMod, ECode, NewEState}),
+                lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),
             {<<(Box#box.x):2/unit:8,
                (Box#box.y):2/unit:8,
                (Box#box.width):2/unit:8,
@@ -644,7 +644,7 @@ write_rectangle(PF,
             ?ERROR("Error writing ~p with ~p encoding:~n\t~p~n", [Box, EMod, invalid_data]),
             ?TRACE("Original data:~n~p~n", [Data]),
             NewEncodings =
-                lists:keystore(EMod, 1, Encodings, {EMod, ECode, NewEState}),
+                lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),
             throw({stop, {error, invalid_data}, State#state{encodings = NewEncodings}})
     catch
         _:Error ->

@@ -27,7 +27,7 @@
 
 -record(state,  {socket         :: port(),
                  session        :: #session{},
-                 encodings = [] :: [{Module :: atom(), Code :: integer(), State :: term()}]}).
+                 encodings = [] :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
 
 %% ====================================================================
 %% External functions
@@ -65,9 +65,9 @@ send_event(Client, Event) ->
 set_pixel_format(Client, PixelFormat) ->
     send_event(Client, #set_pixel_format{pixel_format = PixelFormat}).
 
-%% @spec set_encodings(fsmref(), [atom()]) -> ok
+%% @spec set_encodings(fsmref(), [{integer(), atom()}]) -> ok
 %% @equiv send_event(Client, #set_encodings{encodings = Encodings})
--spec set_encodings(fsmref(), [atom()]) -> ok.
+-spec set_encodings(fsmref(), [{integer(), atom()}]) -> ok.
 set_encodings(Client, Encodings) ->
     send_event(Client, #set_encodings{encodings = Encodings}).
 
@@ -111,8 +111,8 @@ init([]) ->
     process_flag(trap_exit, true),
     {ok, State} = erfb_encoding_raw:init(),
     {ok, wait_for_socket,
-     #state{encodings = [{erfb_encoding_raw,
-                          erfb_encoding_raw:code(),
+     #state{encodings = [{?ENCODING_RAW,
+                          erfb_encoding_raw,
                           State}]}, ?FSM_TIMEOUT}.
 
 %% ASYNC EVENTS -------------------------------------------------------
@@ -417,8 +417,8 @@ running(#set_encodings{encodings = Encodings,
     
     {Intersection, AddedEncodings} =
         lists:partition(
-          fun(Enc) ->
-                  lists:keymember(Enc, 1, CurrentEncodings)
+          fun({EC, _EM}) ->
+                  lists:keymember(EC, 1, CurrentEncodings)
           end, Encodings),
 
     RemainingEncodings =
@@ -426,8 +426,8 @@ running(#set_encodings{encodings = Encodings,
                             %%NOTE: Clients must accept raw encoding even
                             %%      if they don't specify it in the list
                             [E | Acc];
-                       ({EMod, _ECode, EState} = E, Acc) ->
-                            case lists:member(EMod, Intersection) of
+                       ({ECod, EMod, EState} = E, Acc) ->
+                            case lists:keymember(ECod, 1, Intersection) of
                                 true ->
                                     [E | Acc];
                                 false ->
@@ -437,9 +437,9 @@ running(#set_encodings{encodings = Encodings,
                     end, [], CurrentEncodings),
     
     FinalEncodings =
-        lists:foldl(fun(EMod, Acc) ->
+        lists:foldl(fun({ECod, EMod}, Acc) ->
                             {ok, EState} = EMod:init(),
-                            [{EMod, EMod:code(), EState} | Acc]
+                            [{ECod, EMod, EState} | Acc]
                     end, RemainingEncodings, AddedEncodings),
         
     Message =
@@ -447,8 +447,8 @@ running(#set_encodings{encodings = Encodings,
             undefined ->
                 Length = length(Encodings),
                 EncodingList =
-                    << <<(EncMod:code()):4/signed-unit:8>> ||
-                       EncMod <- Encodings >>,
+                    << <<EncCod:4/signed-unit:8>> ||
+                       {EncCod, _EncMod} <- Encodings >>,
                 <<?MSG_SET_ENCODINGS:1/unit:8,
                   0:1/unit:8,
                   Length:2/unit:8,
@@ -581,7 +581,7 @@ terminate(Reason, _StateName, #state{socket     = Socket,
                                      encodings  = Encodings}) ->
     (catch gen_tcp:close(Socket)),
     lists:foreach(
-      fun({EMod, _, EState}) ->
+      fun({_, EMod, EState}) ->
               (catch EMod:terminate(Reason, EState))
       end, Encodings),
     erfb_client_event_dispatcher:notify(
@@ -621,10 +621,10 @@ read_rectangles(Missing, <<Head:12/binary, Rest/binary>>, State, BytesRead, Accu
       Y:2/unit:8,
       W:2/unit:8,
       H:2/unit:8,
-      Encoding:4/signed-unit:8>> = Head,
+      EncodingCode:4/signed-unit:8>> = Head,
     Box = #box{x = X, y = Y, width = W, height = H},
     {Rectangle, Bytes, Next, NextState} =
-        read_rectangle(Box, Encoding, Rest, State),
+        read_rectangle(Box, EncodingCode, Rest, State),
     read_rectangles(Missing - 1, Next, NextState,
                     <<BytesRead/binary, Head/binary, Bytes/binary>>,
                     [Rectangle | Accum]);
@@ -642,25 +642,27 @@ read_rectangles(Missing, Rest, State, BytesRead, Accum) ->
     end.
 
 -spec read_rectangle(#box{}, integer(), binary(), #state{}) -> {#rectangle{}, Read::binary(), Rest::binary(), #state{}}.
-read_rectangle(Box, EncodingCode, Stream,
+read_rectangle(Box, ECode, Stream,
                State = #state{socket     = S,
                               encodings  = Encodings,
                               session    = #session{pixel_format = PF}}) ->
-    {EMod, ECode, EState} =
-        case lists:keyfind(EncodingCode, 2, Encodings) of
+    {ECode, EMod, EState} =
+        case lists:keyfind(ECode, 1, Encodings) of
             false ->
-                ?ERROR("Unknown Encoding ~p.  Not found in: ~p~n", [EncodingCode, Encodings]),
-                throw({stop, {unknown_encoding, EncodingCode}, State});
+                ?ERROR("Unknown Encoding ~p.  Not found in: ~p~n", [ECode, Encodings]),
+                throw({stop, {unknown_encoding, ECode}, State});
             Enc ->
                 Enc
         end,
     try
         ?TRACE("Reading rect with encoding ~p: ~p~n", [ECode, EMod]),
-        {ok, Rect, Read, Rest, NewEState} =
+        {ok, Data, Read, Rest, NewEState} =
             EMod:read(PF, Box, Stream, S, EState),
         NewEncodings =
-            lists:keystore(EMod, 1, Encodings, {EMod, ECode, NewEState}),
-        {Rect, Read, Rest, State#state{encodings = NewEncodings}}
+            lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),
+        {#rectangle{box         = Box,
+                    encoding    = ECode,
+                    data        = Data}, Read, Rest, State#state{encodings = NewEncodings}}
     catch
         _:Error ->
             ?ERROR("Error reading ~p with ~p encoding:~n\t~p~n", [Box, EMod, Error]),

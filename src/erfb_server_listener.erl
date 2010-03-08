@@ -29,18 +29,18 @@
 -include("erfb.hrl").
 
 -record(state, {
-                session   :: #session{},  % Session description
-                encodings :: [atom()],    % Supported encodings
-                listener  :: port(),      % Listening socket
-                acceptor  :: term()       % Asynchronous acceptor's internal reference
+                session   :: #session{},            % Session description
+                encodings :: [{integer(), atom()}], % Supported encodings
+                listener  :: port(),                % Listening socket
+                acceptor  :: term()                 % Asynchronous acceptor's internal reference
                }).
 
 %% ====================================================================
 %% External functions
 %% ====================================================================
-%% @spec start_link(#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}
+%% @spec start_link(#session{}, [{integer(), atom()}], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}
 %% @doc  Starts a new server listerner
--spec start_link(#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}.
+-spec start_link(#session{}, [{integer(), atom()}], ip(), non_neg_integer(), non_neg_integer()) -> {ok, pid()}.
 start_link(Session, Encodings, Ip, Port, Backlog) -> 
     ?INFO("Starting RFB Server Listener on ~p for:~n\t~p~n", [Port, Session]),
     gen_server:start_link(?MODULE, {Session, Encodings, Ip, Port, Backlog}, []).
@@ -62,7 +62,7 @@ prep_stop(Listener, Reason) ->
 %% Callback functions
 %% ====================================================================
 %% @hidden
--spec init({#session{}, [atom()], ip(), non_neg_integer(), non_neg_integer()}) -> {ok, #state{}} | {stop, atom()}.
+-spec init({#session{}, [{integer(), atom()}], ip(), non_neg_integer(), non_neg_integer()}) -> {ok, #state{}} | {stop, atom()}.
 init({Session, Encodings, Ip, Port, Backlog}) ->
     process_flag(trap_exit, true),
     Opts = [binary,

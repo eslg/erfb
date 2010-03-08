@@ -33,7 +33,7 @@
 -define(MSG_KEY_EVENT, 4).
 -define(MSG_POINTER_EVENT, 5).
 -define(MSG_CLIENT_CUT_TEXT, 6).
--define(ENCODING_ZLIBHEX, 8).
+-define(ENCODING_RAW, 0).
 
 %% == RFB ======================================================================
 -record(colour, {red    :: non_neg_integer(),
@@ -65,9 +65,9 @@
               y        :: integer(),
               width    :: integer(),
               height   :: integer()}).
--record(rectangle, {box         :: #box{},
-                    encoding    :: atom(),
-                    data        :: term()}). %%NOTE: depends on the encoding
+-record(rectangle, {box                  :: #box{},
+                    encoding = undefined :: integer() | undefined,
+                    data                 :: term()}). %%NOTE: depends on the encoding
 -record(rre_data, {background   :: integer(),
                    rectangles   :: [#rectangle{}]}).
 -record(hextile_data, {background   :: integer() | undefined,
@@ -107,7 +107,7 @@
 -record(set_pixel_format, {?ERFB_EVENT_BASE,
                            pixel_format :: #pixel_format{}}).
 -record(set_encodings, {?ERFB_EVENT_BASE,
-                        encodings = [] :: [atom()]}).
+                        encodings = [] :: [{integer(), atom()}]}).
 -record(update_request, {?ERFB_EVENT_BASE,
                          incremental = true :: boolean(),
                          box                :: #box{}}).

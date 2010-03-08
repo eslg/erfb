@@ -20,8 +20,7 @@
 %% @doc  Behaviour information
 -spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
 behaviour_info(callbacks) ->
-    [{code,     0},
-     {init,     0},
+    [{init,     0},
      {read,     5},
      {write,    4},
      {terminate,2}];

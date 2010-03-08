@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -26,10 +26,6 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> 16.
-code() -> 16.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() ->
     Z = zlib:open(),
@@ -37,7 +33,7 @@ init() ->
                 state       = undefined}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: iolist(), Read::binary(), Rest::binary(), #state{}}.
 read(_PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
                     state       = ZState}) ->
@@ -59,10 +55,7 @@ read(_PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
                 {bstr:substr(Bytes, 1, Length), bstr:substr(Bytes, Length+1)}
         end,
     Decompressed = zlib:inflate(Z, RectBytes),
-    {ok,
-     #rectangle{box     = Box,
-                encoding= ?MODULE,
-                data    = Decompressed},
+    {ok, Decompressed,
      <<Length:4/unit:8, RectBytes/binary>>,
      Rest, State#state{state = reading}};
 read(PF, Box, Bytes, Socket, State) ->

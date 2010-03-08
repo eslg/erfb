@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -25,22 +25,14 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> -223.
-code() -> -223.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() -> {ok, #state{}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: undefined, Read::binary(), Rest::binary(), #state{}}.
 read(_PF, Box, Bytes, _Socket, State) ->
     ?DEBUG("Desktop Size reader starting for ~p.~n", [Box]),
-    {ok,
-     #rectangle{box        = Box,
-                encoding   = ?MODULE,
-                data       = undefined},
-     <<>>, Bytes, State}.
+    {ok, undefined, <<>>, Bytes, State}.
 
 %% @hidden
 -spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.

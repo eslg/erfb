@@ -14,7 +14,7 @@
 
 -behaviour(erfb_encoding).
 
--export([code/0, init/0, read/5, write/4, terminate/2]).
+-export([init/0, read/5, write/4, terminate/2]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -27,10 +27,6 @@
 %% Server functions
 %% ====================================================================
 %% @hidden
--spec code() -> 6.
-code() -> 6.
-
-%% @hidden
 -spec init() -> {ok, #state{}}.
 init() ->
     Z = zlib:open(),
@@ -40,7 +36,7 @@ init() ->
                 raw_state   = RawState}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, #rectangle{}, <<_:32,_:_*8>>, Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: binary(), <<_:32,_:_*8>>, Rest::binary(), #state{}}.
 read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
                     state       = ZState,
@@ -66,10 +62,9 @@ read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
     %%NOTE: We're assuming that everything went fine and the raw reader wont
     %%      need to read more bytes from the socket.  If it needs that, then it
     %%      fails.  So, we don't give it the Socket.
-    {ok, Rect, _, _, NewRawState} =
+    {ok, Data, _, _, NewRawState} =
         erfb_encoding_raw:read(PF, Box, bstr:bstr(Decompressed), Socket, RawState),
-    {ok,
-     Rect#rectangle{encoding = ?MODULE},
+    {ok, Data,
      <<Length:4/unit:8, RectBytes/binary>>,
      Rest, State#state{raw_state= NewRawState,
                        state    = reading}};
