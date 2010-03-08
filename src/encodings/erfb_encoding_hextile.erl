@@ -85,7 +85,7 @@ terminate(_Reason, _State) -> ok.
 %% Internal functions
 %% ====================================================================
 -spec read([#box{}], #box{}, #pixel_format{}, binary(), port(), [#rectangle{}], binary(), #state{}) -> {ok, #rectangle{}, Read::binary(), Rest::binary(), #state{}}.
-read([], OutsideBox, _PF, Rest, _Socket, Tiles, Read, State) ->
+read([], _OutsideBox, _PF, Rest, _Socket, Tiles, Read, State) ->
     ?TRACE("Last: ~p~nAll boxes read~n", [{(hd(Tiles))#rectangle.box, (hd(Tiles))#rectangle.encoding}]),
     {ok, lists:reverse(Tiles), Read, Rest, State};
 read(Boxes, OutsideBox, PF, <<>>, Socket, Tiles, BytesRead, State) ->

@@ -36,7 +36,7 @@ init() ->
                 raw_state   = RawState}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: binary(), <<_:32,_:_*8>>, Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: binary(), Read :: <<_:32,_:_*8>>, Rest::binary(), #state{}}.
 read(PF, Box, <<Length:4/unit:8, Bytes/binary>>, Socket,
      State = #state{zstream     = Z,
                     state       = ZState,
