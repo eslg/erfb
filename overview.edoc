@@ -110,7 +110,7 @@ has only been tested with Erlang R13B.</p>
 
 <ul>
 <li><code>Session :: #session{}</code>: The description of the server parameters (including window size, name, pixel format and others)</li>
-<li><code>Encodings :: [atom()]</code>: The list of encodings that the server will support (it must be a list of modules that comply to the erfb_encoding behaviour)</li>
+<li><code>Encodings :: [{integer(), atom()}]</code>: The list of encodings that the server will support (each one with the module that will be used to interpret it, this modules must comply to the erfb_encoding behaviour)</li>
 <li><code>Ip :: ip()</code>: The IP where you want the server listener process to listen for client connections</li>
 <li><code>Port :: integer()</code>: (Usually 59xx) The port where you want the server listener process to listen for client connections</li>
 <li><code>Backlog :: integer()</code>: The <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2">backlog</a> for the server listener process socket</li>
