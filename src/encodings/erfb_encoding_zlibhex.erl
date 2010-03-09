@@ -77,11 +77,13 @@ read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket,
         writing ->
             ok = zlib:deflateEnd(Z),
             ok = zlib:deflateEnd(ZRaw),
+            ?DEBUG("Inflating...~n", []),
             ok = zlib:inflateInit(Z),
             ok = zlib:inflateInit(ZRaw);
         reading ->
             void;
         undefined ->
+            ?DEBUG("Inflating for the first time...~n", []),
             ok = zlib:inflateInit(Z),
             ok = zlib:inflateInit(ZRaw)
     end,
@@ -97,15 +99,19 @@ write(PF, _Box, Tiles,
         reading ->
             ok = zlib:inflateEnd(Z),
             ok = zlib:inflateEnd(ZRaw),
+            ?DEBUG("Deflating...~n", []),
             ok = zlib:deflateInit(Z),
             ok = zlib:deflateInit(ZRaw);
         writing ->
             void;
         undefined ->
+            ?DEBUG("Deflating for the first time...~n", []),
             ok = zlib:deflateInit(Z),
             ok = zlib:deflateInit(ZRaw)
     end,
-    internal_write(PF, Tiles, <<>>, State#state{state = writing});
+    Result =
+        internal_write(PF, Tiles, <<>>, State#state{state = writing}),
+    Result;
 write(_PF, _, Data, State) ->
     ?ERROR("Invalid data for zlibhex encoding:~p~n", [Data]),
     {error, invalid_data, State}.
@@ -304,7 +310,8 @@ internal_write(PF,
                             case ZStream of
                                 zraw -> ZRaw;
                                 z -> Z
-                            end, Uncompressed, sync)),
+                            end, Uncompressed,
+                            flush_style(zraw, Tiles))),
             Length =
                 bstr:len(NewData),
             Header =
@@ -395,7 +402,8 @@ internal_write(PF = #pixel_format{bits_per_pixel = BPP},
     Body =
         case Compressed of
             true ->
-                CompData = bstr:bstr(zlib:deflate(Z, Uncompressed, sync)),
+                CompData = bstr:bstr(zlib:deflate(Z, Uncompressed,
+                                                  flush_style(z, Tiles))),
                 Length = bstr:len(CompData),
                 <<Length:2/unit:8, CompData/binary>>;
             _ ->
@@ -468,3 +476,16 @@ get_header_length(PixelSize, BackgroundSpecified,
               0 -> 0
     end +
         AnySubrects. %%NOTE: 1 => 1 more byte
+
+-spec flush_style(zraw | z, [#rectangle{}]) -> none | sync.
+flush_style(_, []) ->
+    ?DEBUG("sync~n", []),
+    sync;
+flush_style(zraw, [#rectangle{encoding = ?ENCODING_ZLIB}|_]) ->
+    ?DEBUG("none~n", []),
+    none;
+flush_style(z, [#rectangle{data = #zlibhex_data{compressed = true}}|_]) ->
+    ?DEBUG("none~n", []),
+    none;
+flush_style(ZStream, [_|Tiles]) ->
+    flush_style(ZStream, Tiles).
