@@ -65,7 +65,7 @@ Follow this steps to build a RFB *Server*:
 >    where the parameters are:
 >
 >  * ``Session :: #session{}``: The description of the server parameters (including window size, name, pixel format and others)
->  * ``Encodings :: [atom()]``: The list of encodings that the server will support (it must be a list of modules that comply to the erfb_encoding behaviour)
+>  * ``Encodings :: [{integer(), atom()}]``: The list of encodings that the server will support (each one with the module that will be used to interpret it, this modules must comply to the erfb_encoding behaviour)
 >  * ``Ip :: ip()``: The IP where you want the server listener process to listen for client connections
 >  * ``Port :: integer()``: (Usually 59xx) The port where you want the server listener process to listen for client connections
 >  * ``Backlog :: integer()``: The [backlog](http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2) for the server listener process socket
