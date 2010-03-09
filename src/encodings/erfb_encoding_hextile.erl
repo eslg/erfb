@@ -94,16 +94,6 @@ read(Boxes, OutsideBox, PF, <<>>, Socket, Tiles, BytesRead, State) ->
          Socket, Tiles, BytesRead, State);
 read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
      <<Byte:1/binary, Bytes/binary>>, Socket, Tiles, BytesRead, State) ->
-    ?TRACE("Last: ~p - Reading ~p box: ~p from ~p bytes~n", [case Tiles of
-                                                                 [] ->
-                                                                     none;
-                                                                 Tiles ->
-                                                                     {(hd(Tiles))#rectangle.box, (hd(Tiles))#rectangle.encoding}
-                                                             end,
-                                                             erlang:length(Tiles)+1,
-                                                             Box,
-                                                             {Byte,
-                                                              erlang:size(Bytes)}]),
     <<_Padding:3/unit:1,
       SubrectsColoured:1/unit:1,
       AnySubrects:1/unit:1,
