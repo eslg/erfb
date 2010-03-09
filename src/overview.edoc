@@ -5,4 +5,145 @@
 @copyright 2010 Novamens S.A.
 @version 1.0.0
 @title Erlang RFB (Remote FrameBuffer) Library
-@doc A library to start, manage and stop RFB client and/or server connections.
+@reference <a href="http://github.com/novamens/erfb">Github Repository</a>
+@doc
+<style type="text/css">
+    div.wikistyle{background-color:#f8f8f8;padding:.7em;}
+    .wikistyle h1,h2,h3,h4,h5,h6{border:0!important;}
+    .wikistyle h1{font-size:170%!important;border-top:4px solid #aaa!important;padding-top:.5em!important;margin-top:1.5em!important;}
+    .wikistyle h1:first-child{margin-top:0!important;padding-top:.25em!important;border-top:none!important;}
+    .wikistyle h2{font-size:150%!important;margin-top:1.5em!important;border-top:4px solid #e0e0e0!important;padding-top:.5em!important;}
+    .wikistyle h3{margin-top:1em!important;}
+    .wikistyle p{margin:1em 0!important;line-height:1.5em!important;}
+    .wikistyle ul{margin:1em 0 1em 2em!important;}
+    .wikistyle ol{margin:1em 0 1em 2em!important;}
+    .wikistyle ul ul,.wikistyle ul ol,.wikistyle ol ol,.wikistyle ol ul{margin-top:0!important;margin-bottom:0!important;}
+    .wikistyle blockquote{margin:1em 0!important;border-left:5px solid #ddd!important;padding-left:.6em!important;color:#555!important;}
+    .wikistyle dt{font-weight:bold!important;margin-left:1em!important;}
+    .wikistyle dd{margin-left:2em!important;margin-bottom:1em!important;}
+    .wikistyle table{margin:1em 0!important;}
+    .wikistyle table th{border-bottom:1px solid #bbb!important;padding:.2em 1em!important;}
+    .wikistyle table td{border-bottom:1px solid #ddd!important;padding:.2em 1em!important;}
+    .wikistyle pre{margin:1em 0!important;font-size:90%!important;background-color:#f8f8ff!important;border:1px solid #dedede!important;padding:.5em!important;line-height:1.5em!important;color:#444!important;overflow:auto!important;}
+    .wikistyle pre code{padding:0!important;font-size:100%!important;background-color:#f8f8ff!important;border:none!important;}
+    .wikistyle code{font-size:90%!important;background-color:#f8f8ff!important;color:#444!important;padding:0 .2em!important;border:1px solid #dedede!important;}
+    .wikistyle pre.console{margin:1em 0!important;font-size:90%!important;background-color:black!important;padding:.5em!important;line-height:1.5em!important;color:white!important;}
+    .wikistyle pre.console code{padding:0!important;font-size:100%!important;background-color:black!important;border:none!important;color:white!important;}
+    .wikistyle pre.console span{color:#888!important;}
+    .wikistyle pre.console span.command{color:yellow!important;}
+</style>
+<div class="wikistyle">
+
+<p>A library to start, manage and stop <a href="http://www.tigervnc.com/cgi-bin/rfbproto">RFB</a> client and/or server connections.
+Server side works with <a href="http://www.dmoz.org/Computers/Software/Networking/Thin_Clients/Virtual_Network_Computing/">any VNC client</a>.
+Client side works with servers that support reverse connections.</p>
+
+<h2>Requirements</h2>
+
+<p>You should only need a somewhat recent version of Erlang/OTP, though the library
+has only been tested with Erlang R13B.</p>
+
+<h2>Installation</h2>
+
+<p>To compile the library you simply run <code>make</code>.</p>
+
+<h2>Usage</h2>
+
+<p>Follow this steps to build a RFB <em>Client</em>:</p>
+
+<ul>
+<li><p>start the client listener process:</p>
+
+<blockquote><pre><code>   erfb_client:start_link(Ip, Port, Backlog)
+</code></pre>
+
+<p>   where the parameters are:</p>
+
+<ul>
+<li><code>Ip :: ip()</code>: The IP where you want the client listener process to listen for server connections</li>
+<li><code>Port :: integer()</code>: (Usually 5500) The port where you want the client listener process to listen for server connections</li>
+<li><code>Backlog :: integer()</code>: The <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2">backlog</a> for the client listener process socket</li>
+</ul>
+</blockquote></li>
+<li><p>subscribe to the client event dispatcher:</p>
+
+<blockquote><pre><code>   erfb_client_event_dispatcher:subscribe_link(Handler, Args)
+</code></pre>
+
+<p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/2</a></p></blockquote></li>
+<li><p>start listening for events with your <code>Handler</code></p>
+
+<blockquote><p>   All events are implemented using records, and all of them have the following common fields:</p>
+
+<ul>
+<li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
+<li><code>server :: binary()</code>: The id of the server (assigned by <em>erfb</em> automatically)</li>
+<li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p>
+
+<p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p></li>
+<li><p><code>#server_connected{}</code></p></li>
+<li><code>#server_disconnected{}</code></li>
+<li><code>#set_colour_map_entries{}</code></li>
+<li><code>#update{}</code></li>
+<li><code>#bell{}</code></li>
+<li><code>#server_cut_text{}</code></li>
+<li><code>#unknown_message{}</code></li>
+</ul>
+</blockquote></li>
+<li><p>to send data to the server, use the functions exported by the <code>erfb_client_process</code> module</p></li>
+</ul>
+
+
+<p>Follow this steps to build a RFB <em>Server</em>:</p>
+
+<ul>
+<li><p>start the server listener manager process:</p>
+
+<blockquote><pre><code>   erfb_server:start_link()
+</code></pre></blockquote></li>
+<li><p>start a new listener:</p>
+
+<blockquote><pre><code>   erfb_server_listener_manager:start_listener(Session, Encodings, Ip, Port, Backlog)
+</code></pre>
+
+<p>   where the parameters are:</p>
+
+<ul>
+<li><code>Session :: #session{}</code>: The description of the server parameters (including window size, name, pixel format and others)</li>
+<li><code>Encodings :: [atom()]</code>: The list of encodings that the server will support (it must be a list of modules that comply to the erfb_encoding behaviour)</li>
+<li><code>Ip :: ip()</code>: The IP where you want the server listener process to listen for client connections</li>
+<li><code>Port :: integer()</code>: (Usually 59xx) The port where you want the server listener process to listen for client connections</li>
+<li><code>Backlog :: integer()</code>: The <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2">backlog</a> for the server listener process socket</li>
+</ul>
+</blockquote></li>
+<li><p>subscribe to the server event dispatcher:</p>
+
+<blockquote><pre><code>   erfb_server_event_dispatcher:subscribe_link(Handler, Args)
+</code></pre>
+
+<p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/2</a></p></blockquote></li>
+<li><p>start listening for events with your <code>Handler</code></p>
+
+<blockquote><p>   All events are implemented using records, and all of them have the following common fields:</p>
+
+<ul>
+<li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
+<li><code>client :: binary()</code>: The id of the client (assigned by <em>erfb</em> automatically) <em>Note:</em> a server may have more than just one client</li>
+<li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p>
+
+<p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p></li>
+<li><p><code>#client_connected{}</code></p></li>
+<li><code>#listener_disconnected{}</code></li>
+<li><code>#client_disconnected{}</code></li>
+<li><code>#set_pixel_format{}</code></li>
+<li><code>#set_encodings{}</code></li>
+<li><code>#update_request{}</code></li>
+<li><code>#key{}</code></li>
+<li><code>#pointer{}</code></li>
+<li><code>#client_cut_text{}</code></li>
+<li><code>#unknown_message{}</code></li>
+</ul>
+</blockquote></li>
+<li><p>to send data to the clients, use the functions exported by the <code>erfb_server_process</code> module</p></li>
+</ul>
+</div>
