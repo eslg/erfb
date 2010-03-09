@@ -34,6 +34,7 @@
 -define(MSG_POINTER_EVENT, 5).
 -define(MSG_CLIENT_CUT_TEXT, 6).
 -define(ENCODING_RAW, 0).
+-define(ENCODING_ZLIB, 6).
 
 %% == RFB ======================================================================
 -record(colour, {red    :: non_neg_integer(),
@@ -73,8 +74,10 @@
 -record(hextile_data, {background   :: integer() | undefined,
                        foreground   :: integer() | undefined,
                        rectangles   :: [#rectangle{}]}).
--record(zlibhex_data, {byte :: binary(),
-                       data :: binary()}).
+-record(zlibhex_data, {background   :: integer() | undefined,
+                       foreground   :: integer() | undefined,
+                       compressed   :: boolean(),
+                       rectangles   :: [#rectangle{}]}).
 -record(cursor_data, {pixels    :: binary(),
                       bitmask   :: binary()}).
 
