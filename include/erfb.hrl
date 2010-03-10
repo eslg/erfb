@@ -78,6 +78,9 @@
                        foreground   :: integer() | undefined,
                        compressed   :: boolean(),
                        rectangles   :: [#rectangle{}]}).
+-record(tight_data, {reset_zstreams :: binary(),
+                     compression    :: fill | jpeg | {basic, 1..4},
+                     data           :: integer() | binary()}).
 -record(cursor_data, {pixels    :: binary(),
                       bitmask   :: binary()}).
 
