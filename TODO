@@ -3,7 +3,6 @@ Features:
 
 Encodings:
     Missing ones:
-        8       - zlibhex
         7       - Tight
     -240 < -246 - Tight options
     -225 < -238 - Tight options

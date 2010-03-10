@@ -20,6 +20,7 @@
 -export([start_link/5, stop/1, prep_stop/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
+-export([set_pixel_format/2]).
 
 %% -------------------------------------------------------------------
 %% Include files
@@ -51,6 +52,13 @@ start_link(Session, Encodings, Ip, Port, Backlog) ->
 stop(Listener) ->
     ?INFO("Stopping RFB Server Listener~n", []),
     gen_server:call(Listener, stop).
+
+%% @spec set_pixel_format(pid(), #pixel_format{}) -> ok
+%% @doc  Modifies the informed pixel_format in a running listener
+-spec set_pixel_format(pid(), #pixel_format{}) -> ok.
+set_pixel_format(Listener, PF) ->
+    ?INFO("Setting RFB Server Listener PF: ~p~n", [PF]),
+    gen_server:call(Listener, PF).
 
 %% @hidden
 -spec prep_stop(pid(), term()) -> ok.
@@ -85,7 +93,10 @@ init({Session, Encodings, Ip, Port, Backlog}) ->
     end.
 
 %% @hidden
--spec handle_call(any(), any(), #state{}) -> {stop, normal, ok, #state{}}.
+-spec handle_call(any(), any(), #state{}) -> {reply, ok, #state{}} | {stop, normal, ok, #state{}}.
+handle_call(PF, _From, State = #state{session = Session})
+  when is_record(PF, pixel_format) ->
+    {reply, ok, State#state{session = Session#session{pixel_format = PF}}};
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State}.
 
