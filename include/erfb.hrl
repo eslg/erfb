@@ -79,7 +79,8 @@
                        compressed   :: boolean(),
                        rectangles   :: [#rectangle{}]}).
 -record(tight_data, {reset_zstreams :: binary(),
-                     compression    :: fill | jpeg | {basic, 1..4},
+                     compression    :: fill | jpeg | basic | {basic, 1..4},
+                     filter         :: undefined | copy | gradient | {palette, [integer()]},
                      data           :: integer() | binary()}).
 -record(cursor_data, {pixels    :: binary(),
                       bitmask   :: binary()}).

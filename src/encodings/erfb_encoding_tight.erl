@@ -34,7 +34,7 @@ init() ->
                 state       = undefined}}.
 
 %% @hidden
--spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: iolist(), Read::binary(), Rest::binary(), #state{}}.
+-spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: #tight_data{}, Read::binary(), Rest::binary(), #state{}}.
 read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
      State = #state{zstreams    = ZS,
                     state       = ZState}) ->
@@ -49,33 +49,8 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
             lists:foreach(fun zlib:inflateInit/1, ZS)
     end,
 
-    %%NOTE: The Tight encoding makes use of a new type TPIXEL (Tight pixel).
-    %%      This is the same as a PIXEL for the agreed pixel format, except
-    %%      where true-colour-flag is non-zero, bits-per-pixel is 32, depth
-    %%      is 24 and all of the bits making up the red, green and blue
-    %%      intensities are exactly 8 bits wide. In this case a TPIXEL
-    %%      is only 3 bytes long, where the first byte is the red component,
-    %%      the second byte is the green component, and the third byte is
-    %%      the blue component of the pixel color value.
-    PixelSize =
-        case PF of
-            #pixel_format{true_colour   = true,
-                          bits_per_pixel= 32,
-                          depth         = 24,
-                          red_max       = RM,
-                          green_max     = GM,
-                          blue_max      = BM,
-                          red_shift     = RS,
-                          green_shift   = GS,
-                          blue_shift    = BS}
-              when (RM bsl RS =:= 16#ff000000),
-                   (GM bsl GS =:= 16#ff000000),
-                   (BM bsl BS =:= 16#ff000000) ->
-                3;
-            #pixel_format{bits_per_pixel = BPP} ->
-                erlang:trunc(BPP / 8)
-        end,
-    
+    PixelSize = get_pixel_size(PF),
+        
     <<ControlBits:4/binary-unit:1,
       ResetZS:4/binary-unit:1>> = CompCtrl,
     lists:zipwith(fun(Z, 1) ->
@@ -135,9 +110,14 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                                 <<1>> ->
                                     <<Size:1/unit:8, MM/binary>> =
                                         erfb_utils:complete(M, 1, Socket, true),
-                                    {{palette, Size+1},
+                                    PLength = (Size+1)*PixelSize,
+                                    <<PaletteBytes:PLength/unit:8, MMM/binary>> =
+                                        erfb_utils:complete(MM, 1, Socket, true),
+                                    Palette =
+                                        [Colour || <<Colour:PixelSize>> <= PaletteBytes],
+                                    {{palette, Palette},
                                      <<FB/binary, Size:1/unit:8>>,
-                                     MM};
+                                     MMM};
                                 <<2>> ->
                                     {gradient, FB, M}
                             end
@@ -145,8 +125,8 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
 
                 Length =
                     case Filter of
-                        {palette, PS} when PS =< 2 ->
-                            (Box#box.width + 7) / 8 * Box#box.height;
+                        {palette, P} when erlang:length(P) =< 2 ->
+                            erlang:trunc((Box#box.width + 7) / 8) * Box#box.height;
                         {palette, _} ->
                             Box#box.width * Box#box.height;
                         _ ->
@@ -168,6 +148,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                             end,
                         {#tight_data{reset_zstreams  = ResetZS,
                                      compression     = basic,
+                                     filter          = Filter,
                                      data            = D},
                          <<FilterBytes/binary, D/binary>>, R};
                     _ ->
@@ -186,6 +167,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                         Decompressed = zlib:inflate(Z, D),
                         {#tight_data{reset_zstreams  = ResetZS,
                                      compression     = {basic, ZN + 1},
+                                     filter          = Filter,
                                      data            = Decompressed},
                          <<FilterBytes/binary, ZLengthBytes/binary, D/binary>>,
                          R}
@@ -198,9 +180,8 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 1, Socket, true), Socket, State).
 
 %% @hidden
-%%TODO: implement!!!!
--spec write(#pixel_format{}, #box{}, iolist(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(_PF, _Box, Data,
+-spec write(#pixel_format{}, #box{}, #tight_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(PF, _Box, Data = #tight_data{reset_zstreams = ResetZS},
       State = #state{zstreams   = ZS,
                      state      = ZState}) ->
     case ZState of
@@ -212,8 +193,20 @@ write(_PF, _Box, Data,
         undefined ->
             lists:foreach(fun zlib:deflateInit/1, ZS)
     end,
-    FinalData = bstr:bstr(zlib:deflate(lists:nth(ZS, 1), Data, sync)),
-    {ok, erfb_utils:build_string(FinalData), State#state{state = writing}}.
+    
+    lists:zipwith(fun(Z, 1) ->
+                          zlib:deflateReset(Z);
+                     (_Z, 0) ->
+                          ok
+                  end, ZS, get_reset_zstreams(ResetZS)),
+
+    try
+        FinalData = internal_write(PF, Data, ZS),
+        {ok, FinalData, State#state{state = writing}}
+    catch
+        _:invalid_data ->
+            {error, invalid_data, State#state{state = writing}}
+    end.
 
 %% @hidden
 -spec terminate(term(), #state{}) -> ok.
@@ -248,3 +241,121 @@ read_length(NextBytes, Socket) ->
                      M}
             end
     end.
+
+-spec write_length(integer() | binary()) -> binary().
+write_length(Data) when is_binary(Data) ->
+    write_length(bstr:len(Data));
+write_length(Length) ->
+    if
+        Length =< 127 ->
+            <<Length>>;
+        true ->
+            if
+                Length =< 16383 ->
+                    L1 = Length rem 128,
+                    L2 = erlang:trunc((Length - L1) / 128),
+                    <<1:1, L1:7, L2:8>>;
+                true ->
+                    L1 = Length rem 128,
+                    L23= erlang:trunc((Length - L1) / 128),
+                    L2 = L23 rem 128,
+                    L3 = erlang:trunc((L23 - L2) / 128),
+                    <<1:1, L1:7, 1:1, L2:7, L3:8>>
+            end
+    end.
+
+%% @doc The Tight encoding makes use of a new type TPIXEL (Tight pixel).
+%%      This is the same as a PIXEL for the agreed pixel format, except
+%%      where true-colour-flag is non-zero, bits-per-pixel is 32, depth
+%%      is 24 and all of the bits making up the red, green and blue
+%%      intensities are exactly 8 bits wide. In this case a TPIXEL
+%%      is only 3 bytes long, where the first byte is the red component,
+%%      the second byte is the green component, and the third byte is
+%%      the blue component of the pixel color value.
+-spec get_pixel_size(#pixel_format{}) -> integer().
+get_pixel_size(#pixel_format{true_colour= true, bits_per_pixel= 32, depth = 24,
+                             red_max    = RM, green_max     = GM, blue_max  = BM,
+                             red_shift  = RS, green_shift   = GS, blue_shift= BS})
+  when (RM bsl RS =:= 16#ff000000), (GM bsl GS =:= 16#ff000000), (BM bsl BS =:= 16#ff000000) ->
+    3;
+get_pixel_size(#pixel_format{bits_per_pixel = BPP}) ->
+    erlang:trunc(BPP / 8).
+
+-spec internal_write(#pixel_format{}, #tight_data{}, [zlib:zstream()]) -> binary().
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = fill,
+                                data            = Pixel}, _ZS) ->
+    <<8:4, ResetZS/binary, Pixel/binary>>;
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = jpeg,
+                                data            = Data}, _ZS) ->
+    LengthBytes = write_length(Data),
+    <<9:4, ResetZS/binary, LengthBytes/binary, Data/binary>>;
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = basic,
+                                filter          = copy,
+                                data            = Uncompressed}, _ZS) ->
+    %%NOTE: It says "use zstream 0", but it doesn't matter... data is not compressed anyway
+    <<0:4, ResetZS/binary, Uncompressed/binary>>;
+internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
+                               compression     = basic,
+                               filter          = {palette, Palette},
+                               data            = Uncompressed}, _ZS) ->
+    PixelSize   = get_pixel_size(PF),
+    Size        = erlang:length(Palette) - 1,
+    <<4:4,              %% read-filter-id = 1
+      ResetZS/binary,   
+      1:1/unit:8,       %% filter-id = palette
+      Size:1/unit:8,    %% palette size -1
+      << <<Colour:PixelSize>> || Colour <- Palette >>,
+      Uncompressed/binary>>;
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = basic,
+                                filter          = gradient,
+                                data            = Uncompressed}, _ZS) ->
+    <<4:4,              %% read-filter-id = 1
+      ResetZS/binary,
+      2:1/unit:8,       %% filter-id = gradient
+      Uncompressed/binary>>;
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = {basic, ZN},
+                                filter          = copy,
+                                data            = Uncompressed}, ZS) ->
+    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    LengthBytes = write_length(Compressed),
+    <<0:2,              %% read-filter-id = 0
+      (ZN-1):2,         %% use zstream ZN-1 
+      ResetZS/binary,
+      LengthBytes/binary,
+      Compressed/binary>>;
+internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
+                               compression     = {basic, ZN},
+                               filter          = {palette, Palette},
+                               data            = Uncompressed}, ZS) ->
+    PixelSize   = get_pixel_size(PF),
+    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    LengthBytes = write_length(Compressed),
+    Size        = erlang:length(Palette) - 1,
+    <<1:2,              %% read-filter-id = 1
+      (ZN-1):2,         %% use zstream ZN-1 
+      ResetZS/binary,   
+      1:1/unit:8,       %% filter-id = palette
+      Size:1/unit:8,    %% palette size -1
+      << <<Colour:PixelSize>> || Colour <- Palette >>,
+      LengthBytes/binary,
+      Compressed/binary>>;
+internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
+                                compression     = {basic, ZN},
+                                filter          = gradient,
+                                data            = Uncompressed}, ZS) ->
+    Compressed = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    LengthBytes = write_length(Compressed),
+    <<1:2,              %% read-filter-id = 1
+      (ZN-1):2,         %% use zstream ZN-1 
+      ResetZS/binary,
+      2:1/unit:8,       %% filter-id = gradient
+      LengthBytes/binary,
+      Compressed/binary>>;
+internal_write(_PF, Data, _ZS) ->
+    ?ERROR("Invalid tight data: ~p~n", [Data]),
+    throw(invalid_data).
