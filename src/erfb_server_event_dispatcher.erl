@@ -65,4 +65,5 @@ subscriptions() ->
 -spec notify(client_event()) -> ok.
 notify(Event) ->
     ?DEBUG("Notifying ~p~n", [element(1, Event)]),
+    ?TRACE("Event:~n~p~n", [Event]),
     gen_event:notify(?MODULE, Event).

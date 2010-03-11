@@ -298,7 +298,8 @@ wait_for_server_init(Event, State) ->
 -spec running({'data',<<_:8,_:_*8>>}, #state{}) -> {next_state, running, #state{}}.
 running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/binary>>}, State) ->
     <<Length:2/unit:8, Rest/binary>> = FramebufferUpdate,
-    {Rectangles, BytesRead, NextMessage, NewState} = read_rectangles(Length, Rest, State),
+    {Rectangles, BytesRead, NextMessage, NewState} =
+        read_rectangles(Length, Rest, State),
     ?TRACE("Original Bytes:~n\t~p~nBytesRead:~n\t~p~n", [FramebufferUpdate, <<?MSG_FRAMEBUFFER_UPDATE,
                                     _Padding:1/unit:8,
                                     Length:2/unit:8,
@@ -609,25 +610,37 @@ read_rectangles(Count, Stream, State) ->
         read_rectangles(Count, Stream, State, <<>>, [])
     catch
         _:Error ->
-            ?ERROR("~p reading rectangles~n", [Error]),
+            ?ERROR("Error:~n~p reading rectangles~n", [Error]),
             throw(Error)
     end.
 
 -spec read_rectangles(integer(), binary(), #state{}, binary(), [#rectangle{}]) -> {Result :: [#rectangle{}], Read :: binary(), Rest :: binary(), NewState :: #state{}}.
 read_rectangles(0, Rest, State, BytesRead, Rectangles) ->
     {lists:reverse(Rectangles), BytesRead, Rest, State};
-read_rectangles(Missing, <<Head:12/binary, Rest/binary>>, State, BytesRead, Accum) ->
+read_rectangles(Missing, <<Head:12/binary, Rest/binary>>,
+                State = #state{session = #session{width = TotW,
+                                                  height= TotH}},
+                BytesRead, Accum) ->
     <<X:2/unit:8,
       Y:2/unit:8,
       W:2/unit:8,
       H:2/unit:8,
       EncodingCode:4/signed-unit:8>> = Head,
     Box = #box{x = X, y = Y, width = W, height = H},
-    {Rectangle, Bytes, Next, NextState} =
-        read_rectangle(Box, EncodingCode, Rest, State),
-    read_rectangles(Missing - 1, Next, NextState,
-                    <<BytesRead/binary, Head/binary, Bytes/binary>>,
-                    [Rectangle | Accum]);
+    if
+        X > TotW;
+        Y > TotH;
+        X+W > TotW;
+        Y+H > TotH ->
+            ?ERROR("Box out of bounds when ~p rects missing:~n\t~p~n", [Missing, Box]),
+            throw({stop, {out_of_bounds, Box, TotW, TotH}, State});
+        true ->
+            {Rectangle, Bytes, Next, NextState} =
+                read_rectangle(Box, EncodingCode, Rest, State),
+            read_rectangles(Missing - 1, Next, NextState,
+                            <<BytesRead/binary, Head/binary, Bytes/binary>>,
+                            [Rectangle | Accum])
+    end;
 read_rectangles(Missing, Rest, State, BytesRead, Accum) ->
     ?DEBUG("We have just ~p to read but we need ~p rects. more.~n", [Rest, Missing]),
     case erfb_utils:complete(Rest,
@@ -649,7 +662,8 @@ read_rectangle(Box, ECode, Stream,
     {ECode, EMod, EState} =
         case lists:keyfind(ECode, 1, Encodings) of
             false ->
-                ?ERROR("Unknown Encoding ~p.  Not found in: ~p~n", [ECode, Encodings]),
+                ?ERROR("Unknown Encoding ~p for box ~p.~n\tNot found in: ~p~n", [ECode, Box, 
+                                                                                 Encodings]),
                 throw({stop, {unknown_encoding, ECode}, State});
             Enc ->
                 Enc

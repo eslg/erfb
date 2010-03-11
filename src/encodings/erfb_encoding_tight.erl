@@ -15,6 +15,7 @@
 -behaviour(erfb_encoding).
 
 -export([init/0, read/5, write/4, terminate/2]).
+-export([read_length/2, write_length/1]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
@@ -35,7 +36,7 @@ init() ->
 
 %% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: #tight_data{}, Read::binary(), Rest::binary(), #state{}}.
-read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
+read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
      State = #state{zstreams    = ZS,
                     state       = ZState}) ->
     ?DEBUG("Tight reader starting for ~p~n", [Box]),
@@ -50,6 +51,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
     end,
 
     PixelSize = get_pixel_size(PF),
+    ?TRACE("Pixel Size: ~p~n", [PixelSize]),
         
     <<ControlBits:4/binary-unit:1,
       ResetZS:4/binary-unit:1>> = CompCtrl,
@@ -58,10 +60,12 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                      (_Z, 0) ->
                           ok
                   end, ZS, get_reset_zstreams(ResetZS)),
-
+    ?TRACE("CompCtrl: ~p~n", [{ControlBits, ResetZS}]),
+    
     {Data, RectBytes, Rest} =
         case ControlBits of
-            <<8:4>> -> %%NOTE: Fill Compression: only pixel value follows, in TPIXEL format. This value applies to all pixels of the rectangle.
+            <<8:4>> -> %%NOTE: pixel value follows, in TPIXEL format. This value applies to all pixels of the rectangle.
+                ?TRACE("Fill Compression~n", []),
                 {Pixel, MoreBytes} =
                     case bstr:len(NextBytes) of
                         L when L < PixelSize ->
@@ -77,7 +81,8 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                              data            = Pixel},
                  Pixel, MoreBytes};
 
-            <<9:4>> -> %%NOTE: JPEG Compression
+            <<9:4>> ->
+                ?TRACE("JPEG Compression~n", []),
                 {Length, LengthBytes, MoreBytes} =
                     read_length(NextBytes, Socket),
                 {D, R} =
@@ -96,7 +101,8 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                  <<LengthBytes/binary, D/binary>>, R};
             
             <<0:1, ReadFillerId:1, ZN:2>> -> %%NOTE: Basic Compression
-                Z = lists:nth(ZS, ZN + 1),
+                ?TRACE("Basic Compression with zstream ~p~n", [ZN+1]),
+                Z = lists:nth(ZN + 1, ZS),
                 {Filter, FilterBytes, MoreBytes} =
                     case ReadFillerId of
                         0 ->
@@ -123,6 +129,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                             end
                     end,
 
+                ?TRACE("Filter: ~p~n", [Filter]),
                 Length =
                     case Filter of
                         {palette, P} when erlang:length(P) =< 2 ->
@@ -133,7 +140,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                             PixelSize * Box#box.width * Box#box.height
                     end,
                 
-
+                ?TRACE("Length: ~p~n", [Length]),
                 case Length of
                     Length when Length =< 12 ->
                         {D, R} =
@@ -154,6 +161,8 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                     _ ->
                         {ZLength, ZLengthBytes, ZMoreBytes} =
                             read_length(MoreBytes, Socket),
+
+                        ?TRACE("ZLength: ~p~n", [ZLength]),
                         {D, R} =
                             case bstr:len(ZMoreBytes) of
                                 L when L < ZLength ->
@@ -164,7 +173,11 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                                     {bstr:substr(ZMoreBytes, 1, ZLength),
                                      bstr:substr(ZMoreBytes, ZLength + 1)}
                             end,
-                        Decompressed = zlib:inflate(Z, D),
+
+                        ?TRACE("To decompress: ~p bytes~n", [erlang:size(D)]),
+                        Decompressed = bstr:bstr(zlib:inflate(Z, D)),
+                        ?TRACE("Decompressed: ~p bytes~n", [erlang:size(Decompressed)]),
+
                         {#tight_data{reset_zstreams  = ResetZS,
                                      compression     = {basic, ZN + 1},
                                      filter          = Filter,
@@ -173,7 +186,7 @@ read(PF, Box, <<CompCtrl:1/unit:8, NextBytes/binary>>, Socket,
                          R}
                 end
         end,
-    {ok, Data, <<CompCtrl:1/unit:8, RectBytes/binary>>, Rest,
+    {ok, Data, <<CompCtrl/binary, RectBytes/binary>>, Rest,
      State#state{state = reading}};
 read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("Tight reader starting for ~p~n", [Box]),
@@ -181,7 +194,7 @@ read(PF, Box, Bytes, Socket, State) ->
 
 %% @hidden
 -spec write(#pixel_format{}, #box{}, #tight_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(PF, _Box, Data = #tight_data{reset_zstreams = ResetZS},
+write(PF, Box, Data = #tight_data{reset_zstreams = ResetZS},
       State = #state{zstreams   = ZS,
                      state      = ZState}) ->
     case ZState of
@@ -194,6 +207,8 @@ write(PF, _Box, Data = #tight_data{reset_zstreams = ResetZS},
             lists:foreach(fun zlib:deflateInit/1, ZS)
     end,
     
+    ?DEBUG("Tight writer starting for ~p~nData: ~p~n",
+           [Box, Data#tight_data{data = data_not_shown}]),
     lists:zipwith(fun(Z, 1) ->
                           zlib:deflateReset(Z);
                      (_Z, 0) ->
@@ -224,18 +239,22 @@ get_reset_zstreams(ResetZS) ->
 
 -spec read_length(binary(), port()) -> {Length :: integer(), LengthBytes :: binary(), MoreBytes :: binary}.
 read_length(NextBytes, Socket) ->
+    ?TRACE("Reading length from ~p~n", [bstr:substr(NextBytes, 1, 3)]),
     case erfb_utils:complete(NextBytes, 1, Socket, true) of
         <<0:1, L1:7, M/binary>> ->
+            ?TRACE("1 byte length: ~p~n", [L1]),
             {L1, <<0:1, L1:7>>, M};
-        _ ->
-            case erfb_utils:complete(NextBytes, 2, Socket, true) of
+        TwoBytes ->
+            case erfb_utils:complete(TwoBytes, 2, Socket, true) of
                 <<1:1, L1:7, 0:1, L2:7, M/binary>> ->
+                    ?TRACE("2 bytes length: ~p~n", [{L1, L2}]),
                     {L2 * 128 + L1,
                      <<1:1, L1:7, 0:1, L2:7>>,
                      M};
-                _ ->
+                ThreeBytes ->
                     <<1:1, L1:7, 1:1, L2:7, L3:1/unit:8, M/binary>> =
-                        erfb_utils:complete(NextBytes, 3, Socket, true),
+                        erfb_utils:complete(ThreeBytes, 3, Socket, true),
+                    ?TRACE("3 bytes length: ~p~n", [{L1, L2, L3}]),
                     {L3 * 128 * 128 + L2 * 128 + L1,
                      <<1:1, L1:7, 1:1, L2:7, L3:1/unit:8>>,
                      M}
@@ -246,9 +265,10 @@ read_length(NextBytes, Socket) ->
 write_length(Data) when is_binary(Data) ->
     write_length(bstr:len(Data));
 write_length(Length) ->
+    ?TRACE("Writing the length: ~p~n", [Length]),
     if
         Length =< 127 ->
-            <<Length>>;
+            <<Length:1/unit:8>>;
         true ->
             if
                 Length =< 16383 ->
@@ -274,9 +294,7 @@ write_length(Length) ->
 %%      the blue component of the pixel color value.
 -spec get_pixel_size(#pixel_format{}) -> integer().
 get_pixel_size(#pixel_format{true_colour= true, bits_per_pixel= 32, depth = 24,
-                             red_max    = RM, green_max     = GM, blue_max  = BM,
-                             red_shift  = RS, green_shift   = GS, blue_shift= BS})
-  when (RM bsl RS =:= 16#ff000000), (GM bsl GS =:= 16#ff000000), (BM bsl BS =:= 16#ff000000) ->
+                             red_max = 255, green_max = 255, blue_max = 255}) ->
     3;
 get_pixel_size(#pixel_format{bits_per_pixel = BPP}) ->
     erlang:trunc(BPP / 8).
@@ -321,7 +339,8 @@ internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = {basic, ZN},
                                 filter          = copy,
                                 data            = Uncompressed}, ZS) ->
-    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
+    ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
     <<0:2,              %% read-filter-id = 0
       (ZN-1):2,         %% use zstream ZN-1 
@@ -333,7 +352,8 @@ internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
                                filter          = {palette, Palette},
                                data            = Uncompressed}, ZS) ->
     PixelSize   = get_pixel_size(PF),
-    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
+    ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
     Size        = erlang:length(Palette) - 1,
     <<1:2,              %% read-filter-id = 1
@@ -348,8 +368,10 @@ internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = {basic, ZN},
                                 filter          = gradient,
                                 data            = Uncompressed}, ZS) ->
-    Compressed = bstr:bstr(zlib:deflate(lists:nth(ZS, ZN), Uncompressed, sync)),
+    Compressed = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
+    ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
+    ?TRACE("To Write: ~p~n", [{ZN, ResetZS, LengthBytes, Compressed}]),
     <<1:2,              %% read-filter-id = 1
       (ZN-1):2,         %% use zstream ZN-1 
       ResetZS/binary,
