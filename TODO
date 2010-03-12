@@ -3,10 +3,10 @@ Features:
 
 Encodings:
     Missing ones:
-        7       - Tight
-    -240 < -246 - Tight options
-    -225 < -238 - Tight options
     1464686185  - wmvi -> http://wiki.multimedia.cx/index.php?title=VMware_Video#WMVi_.28display_mode_change.29
+    
+    With bugs:
+        8       - zlibhex
     
     Tough ones:
         -224    - LastRect -> http://www.tigervnc.com/cgi-bin/rfbproto#lastrect-pseudo-encoding
@@ -26,3 +26,5 @@ Encodings:
         -32768  -
         -32767  -
         -32766  -
+    -240 < -246 - Tight options
+    -225 < -238 - Tight options

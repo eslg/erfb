@@ -235,7 +235,7 @@ write(PF, Box, Data = #tight_data{reset_zstreams = ResetZS},
 %% @hidden
 -spec terminate(term(), #state{}) -> ok.
 terminate(_Reason, #state{zstreams = ZS}) ->
-    lists:foreach(fun({_, Z}) -> zlib:close(Z) end, ZS).
+    lists:foreach(fun zlib:close/1, ZS).
 
 
 %% ====================================================================
