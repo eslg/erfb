@@ -100,32 +100,41 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
                              data            = D},
                  <<LengthBytes/binary, D/binary>>, R};
             
-            <<0:1, ReadFillerId:1, ZN:2>> -> %%NOTE: Basic Compression
+            <<0:1, ReadFilterId:1, ZN:2>> -> %%NOTE: Basic Compression
                 ?TRACE("Basic Compression with zstream ~p~n", [ZN+1]),
                 Z = lists:nth(ZN + 1, ZS),
                 {Filter, FilterBytes, MoreBytes} =
-                    case ReadFillerId of
+                    case ReadFilterId of
                         0 ->
+                            ?TRACE("Don't read Filter ID~n", []),
                             {copy, <<>>, NextBytes};
                         1 ->
+                            ?TRACE("Read Filter ID~n", []),
                             <<FB:1/binary, M/binary>> =
                                erfb_utils:complete(NextBytes, 1, Socket, true),
                             case FB of
                                 <<0>> ->
-                                    {copy, FB, M};
+                                    ?TRACE("Copy filter~n", []),
+                                    {copy, <<0>>, M};
                                 <<1>> ->
+                                    ?TRACE("Palette filter~n", []),
                                     <<Size:1/unit:8, MM/binary>> =
                                         erfb_utils:complete(M, 1, Socket, true),
                                     PLength = (Size+1)*PixelSize,
-                                    <<PaletteBytes:PLength/unit:8, MMM/binary>> =
-                                        erfb_utils:complete(MM, 1, Socket, true),
+                                    <<PaletteBytes:PLength/binary-unit:8, MMM/binary>> =
+                                        erfb_utils:complete(MM, PLength, Socket, true),
+                                    ?TRACE("Palette bytes: ~p~n", [PaletteBytes]),
                                     Palette =
-                                        [Colour || <<Colour:PixelSize>> <= PaletteBytes],
+                                        [Colour || <<Colour:PixelSize/unit:8>> <= PaletteBytes],
+                                    ?TRACE("Palette: ~p~n", [Palette]),
                                     {{palette, Palette},
-                                     <<FB/binary, Size:1/unit:8>>,
+                                     <<1, Size:1/unit:8>>,
                                      MMM};
                                 <<2>> ->
-                                    {gradient, FB, M}
+                                    ?TRACE("Gradient filter~n", []),
+                                    {gradient, FB, M};
+                                FB ->
+                                    throw({stop, {invalid_filter, FB}, State})
                             end
                     end,
 
@@ -198,10 +207,10 @@ write(PF, Box, Data = #tight_data{reset_zstreams = ResetZS},
       State = #state{zstreams   = ZS,
                      state      = ZState}) ->
     case ZState of
-        writing ->
+        reading ->
             lists:foreach(fun zlib:inflateEnd/1, ZS),
             lists:foreach(fun zlib:deflateInit/1, ZS);
-        reading ->
+        writing ->
             void;
         undefined ->
             lists:foreach(fun zlib:deflateInit/1, ZS)
@@ -303,48 +312,51 @@ get_pixel_size(#pixel_format{bits_per_pixel = BPP}) ->
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = fill,
                                 data            = Pixel}, _ZS) ->
-    <<8:4, ResetZS/binary, Pixel/binary>>;
+    <<8:4, ResetZS:1/binary-unit:4, Pixel/binary>>;
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = jpeg,
                                 data            = Data}, _ZS) ->
     LengthBytes = write_length(Data),
-    <<9:4, ResetZS/binary, LengthBytes/binary, Data/binary>>;
+    <<9:4, ResetZS:1/binary-unit:4, LengthBytes/binary, Data/binary>>;
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = basic,
                                 filter          = copy,
                                 data            = Uncompressed}, _ZS) ->
     %%NOTE: It says "use zstream 0", but it doesn't matter... data is not compressed anyway
-    <<0:4, ResetZS/binary, Uncompressed/binary>>;
+    <<0:4, ResetZS:1/binary-unit:4, Uncompressed/binary>>;
 internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
                                compression     = basic,
                                filter          = {palette, Palette},
                                data            = Uncompressed}, _ZS) ->
     PixelSize   = get_pixel_size(PF),
     Size        = erlang:length(Palette) - 1,
+    PaletteBytes = << <<Colour:PixelSize/unit:8>> || Colour <- Palette >>,
+    ?TRACE("Palette bytes: ~p~n", [PaletteBytes]),
     <<4:4,              %% read-filter-id = 1
-      ResetZS/binary,   
+      ResetZS:1/binary-unit:4,   
       1:1/unit:8,       %% filter-id = palette
       Size:1/unit:8,    %% palette size -1
-      << <<Colour:PixelSize>> || Colour <- Palette >>,
+      PaletteBytes/binary,
       Uncompressed/binary>>;
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = basic,
                                 filter          = gradient,
                                 data            = Uncompressed}, _ZS) ->
     <<4:4,              %% read-filter-id = 1
-      ResetZS/binary,
+      ResetZS:1/binary-unit:4,
       2:1/unit:8,       %% filter-id = gradient
       Uncompressed/binary>>;
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = {basic, ZN},
                                 filter          = copy,
                                 data            = Uncompressed}, ZS) ->
+    ?TRACE("Uncompressed: ~p bytes~n", [bstr:len(Uncompressed)]),
     Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
     ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
     <<0:2,              %% read-filter-id = 0
       (ZN-1):2,         %% use zstream ZN-1 
-      ResetZS/binary,
+      ResetZS:1/binary-unit:4,
       LengthBytes/binary,
       Compressed/binary>>;
 internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
@@ -352,29 +364,33 @@ internal_write(PF, #tight_data{reset_zstreams  = ResetZS,
                                filter          = {palette, Palette},
                                data            = Uncompressed}, ZS) ->
     PixelSize   = get_pixel_size(PF),
+    ?TRACE("Uncompressed: ~p bytes~n", [bstr:len(Uncompressed)]),
     Compressed  = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
     ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
     Size        = erlang:length(Palette) - 1,
+    ?TRACE("Size: ~p colours~n", [Size]),
+    PaletteBytes = << <<Colour:PixelSize/unit:8>> || Colour <- Palette >>,
+    ?TRACE("Palette bytes: ~p~n", [PaletteBytes]),
     <<1:2,              %% read-filter-id = 1
       (ZN-1):2,         %% use zstream ZN-1 
-      ResetZS/binary,   
+      ResetZS:1/binary-unit:4,   
       1:1/unit:8,       %% filter-id = palette
       Size:1/unit:8,    %% palette size -1
-      << <<Colour:PixelSize>> || Colour <- Palette >>,
+      PaletteBytes/binary,
       LengthBytes/binary,
       Compressed/binary>>;
 internal_write(_PF, #tight_data{reset_zstreams  = ResetZS,
                                 compression     = {basic, ZN},
                                 filter          = gradient,
                                 data            = Uncompressed}, ZS) ->
+    ?TRACE("Uncompressed: ~p bytes~n", [bstr:len(Uncompressed)]),
     Compressed = bstr:bstr(zlib:deflate(lists:nth(ZN, ZS), Uncompressed, sync)),
     ?TRACE("Compressed: ~p bytes~n", [bstr:len(Compressed)]),
     LengthBytes = write_length(Compressed),
-    ?TRACE("To Write: ~p~n", [{ZN, ResetZS, LengthBytes, Compressed}]),
     <<1:2,              %% read-filter-id = 1
       (ZN-1):2,         %% use zstream ZN-1 
-      ResetZS/binary,
+      ResetZS:1/binary-unit:4,
       2:1/unit:8,       %% filter-id = gradient
       LengthBytes/binary,
       Compressed/binary>>;
