@@ -90,8 +90,8 @@ read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket,
     read(Tiles, Box, PF, Bytes, Socket, [], <<>>, State#state{state = reading}).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, [#rectangle{}], #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(PF, _Box, Tiles,
+-spec write(#session{}, #box{}, [#rectangle{}], #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(Session, _Box, Tiles,
       State = #state{zstream    = Z,
                      zrawstream = ZRaw,
                      state      = ZState}) when is_list(Tiles) ->
@@ -110,9 +110,9 @@ write(PF, _Box, Tiles,
             ok = zlib:deflateInit(ZRaw)
     end,
     Result =
-        internal_write(PF, Tiles, <<>>, State#state{state = writing}),
+        internal_write(Session, Tiles, <<>>, State#state{state = writing}),
     Result;
-write(_PF, _, Data, State) ->
+write(_Session, _, Data, State) ->
     ?ERROR("Invalid data for zlibhex encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 
@@ -276,25 +276,25 @@ hextile_subreader(Body, _PixelSize, 0) ->
                  W:1/unit:4,
                  H:1/unit:4>> <= Body].
 
--spec internal_write(#pixel_format{}, [#rectangle{}], binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}. 
-internal_write(_PF, [], Result, State) ->
+-spec internal_write(#session{}, [#rectangle{}], binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}. 
+internal_write(_Session, [], Result, State) ->
     {ok, Result, State};
-internal_write(PF,
+internal_write(Session,
                [#rectangle{box      = Box,
                            encoding = ?ENCODING_RAW,
                            data     = Data} | Tiles],
                Acc,
                State = #state{raw_state = RawState}) ->
     ?DEBUG("Box ~p written with ~s~n", [Box, raw]),
-    case erfb_encoding_raw:write(PF, Box, Data, RawState) of
+    case erfb_encoding_raw:write(Session, Box, Data, RawState) of
         {ok, NewData, NewRawState} ->
-            internal_write(PF, Tiles,
+            internal_write(Session, Tiles,
                            <<Acc/binary, 1:1/unit:8, NewData/binary>>,
                            State#state{raw_state = NewRawState});
         {error, invalid_data, NewRawState} ->
             {error, invalid_data, State#state{raw_state = NewRawState}}
     end;
-internal_write(PF,
+internal_write(Session,
                [#rectangle{box      = Box,
                            encoding = ?ENCODING_ZLIB,
                            data     = {ZStream, Data}} | Tiles],
@@ -303,7 +303,7 @@ internal_write(PF,
                               zrawstream= ZRaw,
                               raw_state = RawState}) ->
     ?DEBUG("Box ~p written with ~s~n", [Box, ZStream]),
-    case erfb_encoding_raw:write(PF, Box, Data, RawState) of
+    case erfb_encoding_raw:write(Session, Box, Data, RawState) of
         {ok, Uncompressed, NewRawState} ->
             NewData = 
                 bstr:bstr(zlib:deflate(
@@ -320,14 +320,14 @@ internal_write(PF,
                     zraw    -> 32;
                     z       -> 65 %%NOTE: 65 = 64 (ZLIB) + 1 (RAW)
                 end,
-            internal_write(PF, Tiles,
+            internal_write(Session, Tiles,
                            <<Acc/binary, Header:1/unit:8,
                              Length:2/unit:8, NewData/binary>>,
                            State#state{raw_state = NewRawState});
         {error, invalid_data, NewRawState} ->
             {error, invalid_data, State#state{raw_state = NewRawState}}
     end;
-internal_write(PF = #pixel_format{bits_per_pixel = BPP},
+internal_write(Session = #session{pixel_format = #pixel_format{bits_per_pixel = BPP}},
                [#rectangle{box = Box,
                            data = #zlibhex_data{background = Background,
                                                 foreground = Foreground,
@@ -409,7 +409,7 @@ internal_write(PF = #pixel_format{bits_per_pixel = BPP},
             _ ->
                 Uncompressed
         end,
-    internal_write(PF, Tiles, <<Acc/binary, Header/binary, Body/binary>>, State).
+    internal_write(Session, Tiles, <<Acc/binary, Header/binary, Body/binary>>, State).
 
 -spec get_decompressed(binary(), port(), zlib:zstream()) -> {CompHeader :: binary(), Decompressed :: binary(), Rest :: binary()}.
 get_decompressed(Bytes, Socket, Z) ->

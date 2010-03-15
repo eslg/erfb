@@ -73,8 +73,8 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, <<_:32,_:_*8>>, #state{}} | {error, invalid_data, #state{}}.
-write(PF, Box, Data,
+-spec write(#session{}, #box{}, binary(), #state{}) -> {ok, <<_:32,_:_*8>>, #state{}} | {error, invalid_data, #state{}}.
+write(Session, Box, Data,
       State = #state{zstream    = Z,
                      state      = ZState,
                      raw_state  = RawState}) ->
@@ -87,7 +87,7 @@ write(PF, Box, Data,
         undefined ->
             ok = zlib:deflateInit(Z)
     end,
-    case erfb_encoding_raw:write(PF, Box, Data, RawState) of
+    case erfb_encoding_raw:write(Session, Box, Data, RawState) of
         {ok, Uncompressed, NewRawState} ->
             FinalData = bstr:bstr(zlib:deflate(Z, Uncompressed, sync)), %%TODO: Just the last rect. should be sync flushed
             {ok, erfb_utils:build_string(FinalData),

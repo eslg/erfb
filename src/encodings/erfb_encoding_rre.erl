@@ -66,8 +66,8 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(#pixel_format{bits_per_pixel = BPP}, _Box,
+-spec write(#session{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(#session{pixel_format = #pixel_format{bits_per_pixel = BPP}}, _Box,
       #rre_data{background = Background,
                 rectangles = Rects}, State) ->
     PixelSize = erlang:trunc(BPP / 8),
@@ -84,7 +84,7 @@ write(#pixel_format{bits_per_pixel = BPP}, _Box,
                                      height = H},
                       data    = Pixel} <- Rects >>,
     {ok, <<Count:4/unit:8, Background:PixelSize/unit:8, RectBytes/binary>>, State};
-write(_PF, _, Data, State) ->
+write(_Session, _Box, Data, State) ->
     ?ERROR("Invalid data for rre encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 

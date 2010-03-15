@@ -52,8 +52,8 @@ read(#pixel_format{bits_per_pixel = BPP},
      Read, Rest, State}.
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, #cursor_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(#pixel_format{bits_per_pixel = BPP},
+-spec write(#session{}, #box{}, #cursor_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(#session{pixel_format = #pixel_format{bits_per_pixel = BPP}},
       Box = #box{width = W, height = H},
       Data = #cursor_data{pixels = Pixels,
                           bitmask= Mask}, State) ->

@@ -67,12 +67,12 @@ read(PF, Box = #box{x = X, y = Y, width = W, height = H}, Bytes, Socket, State) 
     read(Tiles, Box, PF, Bytes, Socket, [], <<>>, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(#pixel_format{bits_per_pixel = BPP}, _Box, Tiles, State) when is_list(Tiles) ->
+-spec write(#session{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(#session{pixel_format = #pixel_format{bits_per_pixel = BPP}}, _Box, Tiles, State) when is_list(Tiles) ->
     PixelSize = erlang:trunc(BPP / 8),
     RectBytes = << <<(write(Tile, PixelSize))/binary>> || Tile <- Tiles >>,
     {ok, RectBytes, State};
-write(_PF, _, Data, State) ->
+write(_Session, _Box, Data, State) ->
     ?ERROR("Invalid data for hextile encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 

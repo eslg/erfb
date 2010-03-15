@@ -45,8 +45,8 @@ read(#pixel_format{bits_per_pixel = BPP},
     {ok, RectBytes, RectBytes, Rest, State}.
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(#pixel_format{bits_per_pixel = BPP}, Box = #box{width = W, height = H},
+-spec write(#session{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(#session{pixel_format = #pixel_format{bits_per_pixel = BPP}}, Box = #box{width = W, height = H},
       Data, State) ->
     Length = erlang:trunc(W * H * BPP / 8),
     case bstr:len(Data) of

@@ -63,8 +63,8 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, iolist(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(_PF, _Box, Data,
+-spec write(#session{}, #box{}, iolist(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(_Session, _Box, Data,
       State = #state{zstream    = Z,
                      state      = ZState}) ->
     case ZState of

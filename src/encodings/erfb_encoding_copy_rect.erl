@@ -39,10 +39,10 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 8, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, term(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(_PF, _Box, {X, Y}, State) ->
+-spec write(#session{}, #box{}, term(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(_Session, _Box, {X, Y}, State) ->
     {ok, <<X:4/unit:8, Y:4/unit:8>>, State};
-write(_PF, _, Data, State) ->
+write(_Session, _, Data, State) ->
     ?ERROR("Invalid data for copy_rect encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 

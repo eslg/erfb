@@ -36,8 +36,8 @@ read(_PF, Box, Bytes, _Socket, State) ->
     {ok, undefined, <<>>, Bytes, State}.
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {error, invalid_data, #state{}}.
-write(_PF, _Box, Data, State) ->
+-spec write(#session{}, #box{}, binary(), #state{}) -> {error, invalid_data, #state{}}.
+write(_Session, _Box, Data, State) ->
     ?ERROR("Invalid data for NO DATA encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 

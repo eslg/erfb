@@ -478,14 +478,13 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
 -spec running(term(), term(), #state{}) -> sync_state_result().
 running(#update{rectangles  = Rs,
                 raw_data    = undefined}, 
-        _From, State = #state{socket = S,
-                              session = #session{pixel_format = PF}}) ->
+        _From, State = #state{socket = S}) ->
     Length      = erlang:length(Rs),
     {Rectangles, NewState} =
         lists:foldl(
           fun(R, {AccRsStr, AccState}) ->
                   {NewR, NextState} =
-                      write_rectangle(PF, R, AccState),
+                      write_rectangle(R, AccState),
                   {<<AccRsStr/binary, NewR/binary>>, NextState}
           end, {<<>>, State}, Rs),
     Message     = <<?MSG_FRAMEBUFFER_UPDATE:1/unit:8,
@@ -613,12 +612,12 @@ vnc_security(State = #state{socket = S}) ->
     {next_state, wait_for_vnc_response,
      State#state{vnc_challenge = Challenge}, ?FSM_TIMEOUT}.
 
--spec write_rectangle(#pixel_format{}, #rectangle{}, #state{}) -> {binary(), #state{}}.
-write_rectangle(PF,
-                #rectangle{box      = Box,
+-spec write_rectangle(#rectangle{}, #state{}) -> {binary(), #state{}}.
+write_rectangle(#rectangle{box      = Box,
                            encoding = ECode,
                            data     = Data},
-                State = #state{encodings = Encodings}) ->
+                State = #state{encodings= Encodings,
+                               session  = Session}) ->
     {ECode, EMod, EState} =
         case lists:keyfind(ECode, 1, Encodings) of
             false ->
@@ -630,7 +629,7 @@ write_rectangle(PF,
             Enc ->
                 Enc
         end,
-    try EMod:write(PF, Box, Data, EState) of
+    try EMod:write(Session, Box, Data, EState) of
         {ok, EncodedData, NewEState} -> 
             NewEncodings =
                 lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),

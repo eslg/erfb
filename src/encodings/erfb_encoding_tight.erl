@@ -202,8 +202,9 @@ read(PF, Box, Bytes, Socket, State) ->
     read(PF, Box, erfb_utils:complete(Bytes, 1, Socket, true), Socket, State).
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, #tight_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(PF, Box, Data = #tight_data{reset_zstreams = ResetZS},
+-spec write(#session{}, #box{}, #tight_data{}, #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(#session{pixel_format = PF}, Box,
+      Data = #tight_data{reset_zstreams = ResetZS},
       State = #state{zstreams   = ZS,
                      state      = ZState}) ->
     case ZState of

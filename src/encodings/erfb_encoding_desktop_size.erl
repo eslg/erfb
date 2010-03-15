@@ -35,10 +35,10 @@ read(_PF, Box, Bytes, _Socket, State) ->
     {ok, undefined, <<>>, Bytes, State}.
 
 %% @hidden
--spec write(#pixel_format{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
-write(_PF, _Box, undefined, State) ->
+-spec write(#session{}, #box{}, binary(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
+write(_Session, _Box, undefined, State) ->
     {ok, <<>>, State};
-write(_PF, _Box, Data, State) ->
+write(_Session, _Box, Data, State) ->
     ?ERROR("Invalid data for desktop_size encoding:~p~n", [Data]),
     {error, invalid_data, State}.
 
