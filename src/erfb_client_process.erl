@@ -463,17 +463,27 @@ running(#set_encodings{encodings = Encodings,
 running(#update_request{incremental = Incremental,
                         box         = Box,
                         raw_data    = undefined},
-        _From, State = #state{socket = S}) ->
+        _From, State = #state{socket    = S,
+                              session   = #session{width = W,
+                                                   height= H}}) ->
     IncrementalByte = case Incremental of
                           true -> 1;
                           false -> 0
                       end,
+    FinalWidth = case Box#box.width of
+                     all -> W;
+                     BW -> BW
+                 end,
+    FinalHeight = case Box#box.height of
+                      all -> H;
+                      BH -> BH
+                  end,
     Message = <<?MSG_FRAMEBUFFER_UPDATE_REQUEST:1/unit:8,
                 IncrementalByte:1/unit:8,
                 (Box#box.x):2/unit:8,
                 (Box#box.y):2/unit:8,
-                (Box#box.width):2/unit:8,
-                (Box#box.height):2/unit:8>>,
+                FinalWidth:2/unit:8,
+                FinalHeight:2/unit:8>>,
     ?DEBUG("Requesting update: ~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
     {reply, ok, running, State};
@@ -627,20 +637,25 @@ read_rectangles(Missing, <<Head:12/binary, Rest/binary>>,
       H:2/unit:8,
       EncodingCode:4/signed-unit:8>> = Head,
     Box = #box{x = X, y = Y, width = W, height = H},
+    
     if
         X > TotW;
         Y > TotH;
         X+W > TotW;
         Y+H > TotH ->
-            ?ERROR("Box out of bounds when ~p rects missing:~n\t~p~n", [Missing, Box]),
-            throw({stop, {out_of_bounds, Box, TotW, TotH}, State});
+            %%NOTE: Just a warning, because some encodings use this parameters
+            %%      to inform something else than the "real" box
+            ?WARN("Box out of bounds when ~p rects missing:~n\t~p~n",
+                  [Missing, Box]);
         true ->
-            {Rectangle, Bytes, Next, NextState} =
-                read_rectangle(Box, EncodingCode, Rest, State),
-            read_rectangles(Missing - 1, Next, NextState,
-                            <<BytesRead/binary, Head/binary, Bytes/binary>>,
-                            [Rectangle | Accum])
-    end;
+            void
+    end,
+    
+    {Rectangle, Bytes, Next, NextState} =
+        read_rectangle(Box, EncodingCode, Rest, State),
+    read_rectangles(Missing - 1, Next, NextState,
+                    <<BytesRead/binary, Head/binary, Bytes/binary>>,
+                    [Rectangle | Accum]);
 read_rectangles(Missing, Rest, State, BytesRead, Accum) ->
     ?DEBUG("We have just ~p to read but we need ~p rects. more.~n", [Rest, Missing]),
     case erfb_utils:complete(Rest,

@@ -35,6 +35,7 @@
 -define(MSG_CLIENT_CUT_TEXT, 6).
 -define(ENCODING_RAW, 0).
 -define(ENCODING_ZLIB, 6).
+-define(ENCODING_WMVI, 1464686185).
 
 %% == RFB ======================================================================
 -record(colour, {red    :: non_neg_integer(),
@@ -64,8 +65,8 @@
                  }).
 -record(box, {x        :: integer(),
               y        :: integer(),
-              width    :: integer(),
-              height   :: integer()}).
+              width    :: integer() | all,
+              height   :: integer() | all}).
 -record(rectangle, {box                  :: #box{},
                     encoding = undefined :: integer() | undefined,
                     data                 :: term()}). %%NOTE: depends on the encoding

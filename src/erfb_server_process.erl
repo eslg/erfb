@@ -617,7 +617,8 @@ write_rectangle(#rectangle{box      = Box,
                            encoding = ECode,
                            data     = Data},
                 State = #state{encodings= Encodings,
-                               session  = Session}) ->
+                               session  = Session = #session{width = W,
+                                                             height= H}}) ->
     {ECode, EMod, EState} =
         case lists:keyfind(ECode, 1, Encodings) of
             false ->
@@ -629,16 +630,35 @@ write_rectangle(#rectangle{box      = Box,
             Enc ->
                 Enc
         end,
+    FinalWidth = case Box#box.width of
+                     all -> W;
+                     BW -> BW
+                 end,
+    FinalHeight = case Box#box.height of
+                      all -> H;
+                      BH -> BH
+                  end,
     try EMod:write(Session, Box, Data, EState) of
         {ok, EncodedData, NewEState} -> 
             NewEncodings =
                 lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),
             {<<(Box#box.x):2/unit:8,
                (Box#box.y):2/unit:8,
-               (Box#box.width):2/unit:8,
-               (Box#box.height):2/unit:8,
+               FinalWidth:2/unit:8,
+               FinalHeight:2/unit:8,
                ECode:4/signed-unit:8,
                EncodedData/binary>>, State#state{encodings = NewEncodings}};
+        {ok, EncodedData, NewEState, NewSession} ->
+            NewEncodings =
+                lists:keystore(ECode, 1, Encodings, {ECode, EMod, NewEState}),
+            {<<(Box#box.x):2/unit:8,
+               (Box#box.y):2/unit:8,
+               FinalWidth:2/unit:8,
+               FinalHeight:2/unit:8,
+               ECode:4/signed-unit:8,
+               EncodedData/binary>>,
+             State#state{encodings  = NewEncodings,
+                         session    = NewSession}};
         {error, invalid_data, NewEState} ->
             ?ERROR("Error writing ~p with ~p encoding:~n\t~p~n", [Box, EMod, invalid_data]),
             ?TRACE("Original data:~n~p~n", [Data]),
