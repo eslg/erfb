@@ -151,7 +151,7 @@ read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
     
     case {ZLibRaw, ZLib, Raw} of
         {1,_,_} ->
-            ?DEBUG("Box ~p read with ~s~n", [Box, zraw]),
+            ?DEBUG("Box ~p read with ~s~nByte: ~p~n", [Box, zraw, Byte]),
             {CompHeader, Decompressed, Rest} =
                 get_decompressed(NextBytes, Socket, ZRaw),
             {ok, RawData, _, _, NewRawState} =
@@ -164,7 +164,7 @@ read([Box | Boxes], OutsideBox, PF = #pixel_format{bits_per_pixel = BPP},
               <<BytesRead/binary, Byte/binary, CompHeader/binary, Decompressed/binary>>,
               State#state{raw_state = NewRawState});
         {0,1,1} ->
-            ?DEBUG("Box ~p read with ~s~n", [Box, z]),
+            ?DEBUG("Box ~p read with ~s~nByte: ~p~n", [Box, z, Byte]),
             {CompHeader, Decompressed, Rest} =
                 get_decompressed(NextBytes, Socket, Z),
             {ok, RawData, _, _, NewRawState} =
@@ -310,18 +310,16 @@ internal_write(Session,
                             case ZStream of
                                 zraw -> ZRaw;
                                 z -> Z
-                            end,
-                            Uncompressed,
-                            sync)),
-            Length =
-                bstr:len(NewData),
+                            end, Uncompressed, sync)),
+            Length = bstr:len(NewData),
             Header =
                 case ZStream of
-                    zraw    -> 32;
-                    z       -> 65 %%NOTE: 65 = 64 (ZLIB) + 1 (RAW)
+                    zraw    -> <<32:1/unit:8>>;
+                    z       -> <<65:1/unit:8>> %%NOTE: 65 = 64 (ZLIB) + 1 (RAW)
                 end,
+            ?TRACE("Byte: ~p~n", [Header]),
             internal_write(Session, Tiles,
-                           <<Acc/binary, Header:1/unit:8,
+                           <<Acc/binary, Header/binary,
                              Length:2/unit:8, NewData/binary>>,
                            State#state{raw_state = NewRawState});
         {error, invalid_data, NewRawState} ->
@@ -413,15 +411,8 @@ internal_write(Session = #session{pixel_format = #pixel_format{bits_per_pixel = 
 
 -spec get_decompressed(binary(), port(), zlib:zstream()) -> {CompHeader :: binary(), Decompressed :: binary(), Rest :: binary()}.
 get_decompressed(Bytes, Socket, Z) ->
-    {Length, OtherBytes} =
-        case Bytes of
-            <<L:2/unit:8, O/binary>> ->
-                {L, O};
-            _ ->
-                <<L:2/unit:8, O/binary>> =
-                    erfb_utils:complete(Bytes, 2, Socket, true),
-                {L, O}
-        end,
+    <<Length:2/unit:8, OtherBytes/binary>> =
+        erfb_utils:complete(Bytes, 2, Socket, true),
     {RectBytes, Rest} =
         case bstr:len(OtherBytes) of
             LL when LL < Length ->
@@ -434,7 +425,7 @@ get_decompressed(Bytes, Socket, Z) ->
                  bstr:substr(OtherBytes, Length+1)}
         end,
     Decompressed = zlib:inflate(Z, RectBytes),
-    {<<Length:4/unit:8>>, bstr:bstr(Decompressed), Rest}.
+    {<<Length:2/unit:8>>, bstr:bstr(Decompressed), Rest}.
 
 -spec get_header_data(integer(), 0 | 1, 0 | 1, 0 | 1, binary()) -> {integer() | undefined, integer() | undefined, integer()}.
 get_header_data(PixelSize, BackgroundSpecified, ForegroundSpecified, AnySubrects, Header) ->
