@@ -25,9 +25,10 @@
 %% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
--record(state,  {socket         :: port(),
-                 session        :: #session{},
-                 encodings = [] :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
+-record(state,  {socket             :: port(),
+                 session            :: #session{},
+                 event_dispatcher   :: pid(),
+                 encodings = []     :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
 
 %% ====================================================================
 %% External functions
@@ -276,16 +277,20 @@ wait_for_server_init({data, <<BufferWidth:2/unit:8,
                                                        red_shift      = PFRedShift,
                                                        green_shift    = PFGreenShift,
                                                        blue_shift     = PFBlueShift}},
+    {ok, ED} = erfb_client_event_dispatcher:start_link_unregistered(),
     ok = erfb_client_event_dispatcher:notify(
-           #server_connected{server     = NewSession#session.server,
-                             client     = NewSession#session.client,
-                             raw_data   = Data,
-                             session    = NewSession}),
+           #server_connected{server             = NewSession#session.server,
+                             client             = NewSession#session.client,
+                             raw_data           = Data,
+                             session            = NewSession,
+                             event_dispatcher   = ED}),
     case bstr:len(NextMessage) of
         0 ->
-            {next_state, running, State#state{session = NewSession}};
+            {next_state, running, State#state{session           = NewSession,
+                                              event_dispatcher  = ED}};
         _ ->
-            running({data, NextMessage}, State#state{session = NewSession})
+            running({data, NextMessage}, State#state{session    = NewSession,
+                                              event_dispatcher  = ED})
     end;
 wait_for_server_init(timeout, State) ->
     ?ERROR("Timeout~n", []),
@@ -296,7 +301,8 @@ wait_for_server_init(Event, State) ->
 
 %% @hidden
 -spec running({'data',<<_:8,_:_*8>>}, #state{}) -> {next_state, running, #state{}}.
-running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/binary>>}, State) ->
+running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/binary>>},
+        State) ->
     <<Length:2/unit:8, Rest/binary>> = FramebufferUpdate,
     {Rectangles, BytesRead, NextMessage, NewState} =
         read_rectangles(Length, Rest, State),
@@ -305,6 +311,7 @@ running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/b
                                     Length:2/unit:8,
                                     BytesRead/binary>>]),
     ok = erfb_client_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #update{server       = (NewState#state.session)#session.server,
                    client       = (NewState#state.session)#session.client,
                    raw_data     = <<?MSG_FRAMEBUFFER_UPDATE,
@@ -343,6 +350,7 @@ running({data, <<?MSG_SET_COLOUR_MAP_ENTRIES, _Padding:1/unit:8, SetColourMapEnt
                                      Green:2/unit:8,
                                      Blue:2/unit:8>> <= ColoursStr ],
     ok = erfb_client_event_dispatcher:notify(
+            State#state.event_dispatcher,
             #set_colour_map_entries{server       = (State#state.session)#session.server,
                                     client       = (State#state.session)#session.client,
                                     raw_data     = <<?MSG_SET_COLOUR_MAP_ENTRIES,
@@ -360,6 +368,7 @@ running({data, <<?MSG_SET_COLOUR_MAP_ENTRIES, _Padding:1/unit:8, SetColourMapEnt
     end;
 running({data, <<?MSG_BELL, NextMessage/binary>>}, State) ->
     ok = erfb_client_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #bell{server     = (State#state.session)#session.server,
                  client     = (State#state.session)#session.client,
                  raw_data   = <<?MSG_BELL>>}),
@@ -373,6 +382,7 @@ running({data, <<?MSG_SERVER_CUT_TEXT, _Padding:3/unit:8, ServerCutText/binary>>
     {Text, NextMessage} =
         erfb_utils:get_full_string(ServerCutText, State#state.socket),
     ok = erfb_client_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #server_cut_text{server      = (State#state.session)#session.server,
                             client      = (State#state.session)#session.client,
                             raw_data    = <<?MSG_SERVER_CUT_TEXT,
@@ -387,6 +397,7 @@ running({data, <<?MSG_SERVER_CUT_TEXT, _Padding:3/unit:8, ServerCutText/binary>>
     end;
 running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
     ok = erfb_client_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #unknown_message{server  = (State#state.session)#session.server,
                             client  = (State#state.session)#session.client,
                             type    = MessageType,
@@ -581,8 +592,14 @@ handle_info({tcp_closed, Socket}, _StateName,
     ?INFO("Server ~s disconnected.\n", [ServerId]),
     {stop, normal, StateData};
 
+handle_info({'EXIT', ED, Reason}, StateName,
+            State = #state{event_dispatcher = ED}) ->
+    ?WARN("Linked event dispatcher [~p] terminated with reason: ~p~n", [ED, Reason]),
+    {ok, NewED} = erfb_client_event_dispatcher:start_link_unregistered(),
+    {next_state, StateName, State#state{event_dispatcher = NewED}};
+
 handle_info(_Info, StateName, StateData) ->
-    {noreply, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %% @hidden
 -spec terminate(term(), atom(), #state{}) -> ok.

@@ -33,8 +33,14 @@ Follow this steps to build a RFB *Client*:
 >  * ``Backlog :: integer()``: The [backlog](http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2) for the client listener process socket
 
   - subscribe to the client event dispatcher:
->        erfb_client_event_dispatcher:subscribe_link(Handler, Args)
->   where the parameters are equivalent to those of [gen_event:add_sup_handler/2](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
+>        erfb_client_event_dispatcher:subscribe_link(GeneralHandler, Args)
+>   where the parameters are equivalent to those of [gen_event:add_sup_handler/3](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
+
+  - wait for ``#server_connected{event_dispatcher = Dispatcher :: pid()}`` events
+  
+  - subscribe to the particular event dispatcher:
+>        erfb_client_event_dispatcher:subscribe_link(Dispatcher, Handler, Args)
+>   where the parameters are equivalent to those of [gen_event:add_sup_handler/3](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
 
   - start listening for events with your ``Handler``
 >    All events are implemented using records, and all of them have the following common fields:
@@ -45,8 +51,6 @@ Follow this steps to build a RFB *Client*:
 >
 >    Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):
 >
->  * `#server_connected{}`
->  * `#server_disconnected{}`
 >  * `#set_colour_map_entries{}`
 >  * `#update{}`
 >  * `#bell{}`
@@ -71,8 +75,14 @@ Follow this steps to build a RFB *Server*:
 >  * ``Backlog :: integer()``: The [backlog](http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2) for the server listener process socket
 
   - subscribe to the server event dispatcher:
->        erfb_server_event_dispatcher:subscribe_link(Handler, Args)
->   where the parameters are equivalent to those of [gen_event:add_sup_handler/2](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
+>        erfb_server_event_dispatcher:subscribe_link(GeneralHandler, Args)
+>   where the parameters are equivalent to those of [gen_event:add_sup_handler/3](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
+
+  - wait for ``#client_connected{event_dispatcher = Dispatcher :: pid()}`` events
+  
+  - subscribe to the particular event dispatcher:
+>        erfb_server_event_dispatcher:subscribe_link(Dispatcher, Handler, Args)
+>   where the parameters are equivalent to those of [gen_event:add_sup_handler/3](http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3)
 
   - start listening for events with your ``Handler``
 >    All events are implemented using records, and all of them have the following common fields:
@@ -83,9 +93,6 @@ Follow this steps to build a RFB *Server*:
 >
 >    Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):
 >
->  * `#client_connected{}`
->  * `#listener_disconnected{}`
->  * `#client_disconnected{}`
 >  * `#set_pixel_format{}`
 >  * `#set_encodings{}`
 >  * `#update_request{}`

@@ -15,6 +15,10 @@
 -export([subscribe/2, subscribe_link/2, unsubscribe/2, subscriptions/0]).
 -export([notify/1]).
 
+-export([start_link_unregistered/0]).
+-export([subscribe/3, subscribe_link/3, unsubscribe/3, subscriptions/1]).
+-export([notify/2]).
+
 -include("erfblog.hrl").
 %% @headerfile "erfb.hrl"
 -include("erfb.hrl").
@@ -25,6 +29,9 @@
 %% External functions
 %% ====================================================================
 
+%% ====================================================================
+%% ?MODULE dispatcher
+%% ====================================================================
 %% @spec start_link() -> {ok, pid()}
 %% @doc  Starts a new event dispatcher
 -spec start_link() -> {ok, pid()}.
@@ -59,11 +66,56 @@ unsubscribe(EventHandler, Args) ->
 subscriptions() ->
     gen_event:which_handlers(?MODULE).
 
-%% @spec notify(server_event()) -> ok
+%% @spec notify(#client_connected{} | #client_disconnected{} | #listener_disconnected{}) -> ok
 %% @doc  Sends an event to the subscribed handlers
 %% @see  gen_event:notify/2
--spec notify(client_event()) -> ok.
+-spec notify(#client_connected{} | #client_disconnected{} | #listener_disconnected{}) -> ok.
 notify(Event) ->
     ?DEBUG("Notifying ~p~n", [element(1, Event)]),
     ?TRACE("Event:~n~p~n", [Event]),
     gen_event:notify(?MODULE, Event).
+
+%% ====================================================================
+%% Unregistered dispatcher
+%% ====================================================================
+%% @spec start_link_unregistered() -> {ok, pid()}
+%% @doc  Starts a new event dispatcher for a particular session (i.e. not registered)
+-spec start_link_unregistered() -> {ok, pid()}.
+start_link_unregistered() ->
+    gen_event:start_link().
+
+%% @spec subscribe_link(pid(), event_handler(), term()) -> ok | {'EXIT', term()} | term()
+%% @doc  Subscribes and links a handler to the event dispatcher
+%% @see  gen_event:add_sup_handler/3
+-spec subscribe_link(pid(), event_handler(), term()) -> ok | {'EXIT', term()} | term(). 
+subscribe_link(Dispatcher, EventHandler, InitArgs) ->
+    gen_event:add_sup_handler(Dispatcher, EventHandler, InitArgs).
+
+%% @spec subscribe(pid(), event_handler(), term()) -> ok | {'EXIT', term()} | term()
+%% @doc  Subscribes a handler to the event dispatcher
+%% @see  gen_event:add_handler/3
+-spec subscribe(pid(), event_handler(), term()) -> ok | {'EXIT', term()} | term(). 
+subscribe(Dispatcher, EventHandler, InitArgs) ->
+    gen_event:add_handler(Dispatcher, EventHandler, InitArgs).
+
+%% @spec unsubscribe(pid(), event_handler(), term()) -> term() | {error, module_not_found} | {'EXIT', term()}
+%% @doc  Unsubscribes a handler from the event dispatcher
+%% @see  gen_event:delete_handler/3
+-spec unsubscribe(pid(), event_handler(), term()) -> term() | {error, module_not_found} | {'EXIT', term()}.
+unsubscribe(Dispatcher, EventHandler, Args) ->
+    gen_event:delete_handler(Dispatcher, EventHandler, Args).
+
+%% @spec subscriptions(pid()) -> [event_handler()]
+%% @doc  Returns the list of subscriptions
+%% @see  gen_event:which_handlers/1
+-spec subscriptions(pid()) -> [event_handler()].
+subscriptions(Dispatcher) ->
+    gen_event:which_handlers(Dispatcher).
+
+%% @spec notify(server_event()) -> ok
+%% @doc  Sends an event to the subscribed handlers
+%% @see  gen_event:notify/2
+-spec notify(pid(), server_event()) -> ok.
+notify(Dispatcher, Event) ->
+    ?DEBUG("Notifying ~p through ~p~n", [element(1, Event), Dispatcher]),
+    gen_event:notify(Dispatcher, Event).

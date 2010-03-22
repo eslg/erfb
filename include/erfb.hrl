@@ -93,7 +93,8 @@
                          timestamp = erfb_utils:timestamp() :: integer(),
                          raw_data  = undefined              :: undefined | binary()).
 -record(server_connected, {?ERFB_EVENT_BASE,
-                           session :: #session{}}).
+                           session :: #session{},
+                           event_dispatcher :: pid()}).
 -record(server_disconnected, {?ERFB_EVENT_BASE,
                               reason :: term()}).
 -record(update, {?ERFB_EVENT_BASE,
@@ -109,7 +110,8 @@
                                 reason :: term()}).
 
 -record(client_connected, {?ERFB_EVENT_BASE,
-                           session :: #session{}}).
+                           session :: #session{},
+                           event_dispatcher :: pid()}).
 -record(client_disconnected, {?ERFB_EVENT_BASE,
                               reason :: term()}).
 -record(set_pixel_format, {?ERFB_EVENT_BASE,

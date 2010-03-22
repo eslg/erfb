@@ -24,10 +24,11 @@
 %% @headerfile "erfb.hrl"
 -include("erfb.hrl").
 
--record(state,  {socket         :: port(),
-                 session        :: #session{},
-                 vnc_challenge  :: binary(),
-                 encodings = [] :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
+-record(state,  {socket             :: port(),
+                 session            :: #session{},
+                 vnc_challenge      :: binary(),
+                 event_dispatcher   :: pid(),
+                 encodings = []     :: [{Code :: integer(), Module :: atom(), State :: term()}]}).
 
 %% ====================================================================
 %% External functions
@@ -279,12 +280,14 @@ wait_for_client_init({data, <<Flag:1/unit:8>>},
     Message = <<Width:2/unit:8, Height:2/unit:8, PFBin/binary, NameBin/binary>>,
     ?DEBUG("Initializing~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
+    {ok, ED} = erfb_server_event_dispatcher:start_link_unregistered(),
     ok = erfb_server_event_dispatcher:notify(
-           #client_connected{server     = Session#session.server,
-                             client     = Session#session.client,
-                             raw_data   = Message,
-                             session    = Session}),
-    {next_state, running, State, ?FSM_TIMEOUT};
+           #client_connected{server             = Session#session.server,
+                             client             = Session#session.client,
+                             raw_data           = Message,
+                             session            = Session,
+                             event_dispatcher   = ED}),
+    {next_state, running, State#state{event_dispatcher = ED}, ?FSM_TIMEOUT};
 wait_for_client_init(timeout, State) ->
     ?ERROR("Timeout~n", []),
     {stop, timeout, State};
@@ -320,6 +323,7 @@ running({data, <<?MSG_SET_PIXEL_FORMAT, _Padding:3/unit:8, SetPixelFormat/binary
                                    blue_shift     = PFBlueShift},
     Session = State#state.session,
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #set_pixel_format{server         = Session#session.server,
                              client         = Session#session.client,
                              raw_data       = <<?MSG_SET_PIXEL_FORMAT,
@@ -386,6 +390,7 @@ running({data, <<?MSG_SET_ENCODINGS, _Padding:1/unit:8, SetEncodings/binary>>},
                     end, [], CurrentEncodings),
 
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #set_encodings{server     = (State#state.session)#session.server,
                           client     = (State#state.session)#session.client,
                           raw_data   = <<?MSG_SET_ENCODINGS,
@@ -405,6 +410,7 @@ running({data, <<?MSG_FRAMEBUFFER_UPDATE_REQUEST, FramebufferUpdateRequest/binar
     <<IncrementalByte:1/unit:8,
       X:2/unit:8, Y:2/unit:8, W:2/unit:8, H:2/unit:8>> = Data,
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #update_request{server     = (State#state.session)#session.server,
                            client     = (State#state.session)#session.client,
                            raw_data   = <<?MSG_FRAMEBUFFER_UPDATE_REQUEST, Data/binary>>,
@@ -423,6 +429,7 @@ running({data, <<?MSG_KEY_EVENT, KeyEvent/binary>>}, State) ->
       _Padding:2/unit:8,
       Code:4/unit:8>> = Data,
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #key{server      = (State#state.session)#session.server,
                 client      = (State#state.session)#session.client,
                 raw_data    = <<?MSG_KEY_EVENT, Data/binary>>,
@@ -438,6 +445,7 @@ running({data, <<?MSG_POINTER_EVENT, PointerEvent/binary>>}, State) ->
     <<Data:5/binary, NextMessage/binary>> = PointerEvent,
     <<ButtonMask:1/unit:8, X:2/unit:8, Y:2/unit:8>> = Data,
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #pointer{server      = (State#state.session)#session.server,
                     client      = (State#state.session)#session.client,
                     raw_data    = <<?MSG_POINTER_EVENT, Data/binary>>,
@@ -454,6 +462,7 @@ running({data, <<?MSG_CLIENT_CUT_TEXT, _Padding:3/unit:8, ClientCutText/binary>>
     {Text, NextMessage} = erfb_utils:get_full_string(ClientCutText,
                                                      State#state.socket),
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #client_cut_text{server      = (State#state.session)#session.server,
                             client      = (State#state.session)#session.client,
                             raw_data    = <<?MSG_CLIENT_CUT_TEXT,
@@ -468,6 +477,7 @@ running({data, <<?MSG_CLIENT_CUT_TEXT, _Padding:3/unit:8, ClientCutText/binary>>
     end;
 running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
     ok = erfb_server_event_dispatcher:notify(
+           State#state.event_dispatcher,
            #unknown_message{server   = (State#state.session)#session.server,
                             client   = (State#state.session)#session.client,
                             type     = MessageType,
@@ -576,8 +586,14 @@ handle_info({tcp_closed, Socket}, _StateName,
     ?INFO("Client ~s disconnected.\n", [Client]),
     {stop, normal, StateData};
 
+handle_info({'EXIT', ED, Reason}, StateName,
+            State = #state{event_dispatcher = ED}) ->
+    ?WARN("Linked event dispatcher [~p] terminated with reason: ~p~n", [ED, Reason]),
+    {ok, NewED} = erfb_client_event_dispatcher:start_link_unregistered(),
+    {next_state, StateName, State#state{event_dispatcher = NewED}};
+
 handle_info(_Info, StateName, StateData) ->
-    {noreply, StateName, StateData}.
+    {next_state, StateName, StateData}.
 
 %% @hidden
 -spec terminate(term(), atom(), #state{}) -> ok.
