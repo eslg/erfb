@@ -112,7 +112,7 @@ unsubscribe(Dispatcher, EventHandler, Args) ->
 subscriptions(Dispatcher) ->
     gen_event:which_handlers(Dispatcher).
 
-%% @spec notify(server_event()) -> ok
+%% @spec notify(pid(), server_event()) -> ok
 %% @doc  Sends an event to the subscribed handlers
 %% @see  gen_event:notify/2
 -spec notify(pid(), server_event()) -> ok.
