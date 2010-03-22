@@ -15,7 +15,6 @@
 -behaviour(erfb_encoding).
 
 -export([init/0, read/5, write/4, terminate/2]).
--export([read_length/2, write_length/1]).
 
 -include("erfblog.hrl").
 -include("erfb.hrl").
