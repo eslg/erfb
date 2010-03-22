@@ -19,6 +19,7 @@
          wait_for_vnc_response/2, wait_for_client_init/2, running/2, running/3]).
 -export([send_event/2]).
 -export([update/2, set_colour_map_entries/3, bell/1, server_cut_text/2, server_disconnected/2]).
+-export([event_dispatcher/1]).
 
 -include("erfblog.hrl").
 %% @headerfile "erfb.hrl"
@@ -48,6 +49,12 @@ set_socket(Pid, Socket) ->
 -spec prep_stop(fsmref(), term()) -> ok.
 prep_stop(Server, Reason) ->
     server_disconnected(Server, Reason).
+
+%% @spec event_dispatcher(fsmref()) -> pid()
+%% @doc  Returns the event dispatcher associated to this process
+-spec event_dispatcher(fsmref()) -> {ok, pid()}.
+event_dispatcher(Server) ->
+    gen_fsm:sync_send_all_state_event(Server, event_dispatcher).
 
 %% -- Server -> Client messages ---------------------------------------
 %% @spec send_event(fsmref(), server_event()) -> ok
@@ -569,6 +576,9 @@ handle_event(Event, StateName, StateData) ->
 
 %% @hidden
 -spec handle_sync_event(term(), term(), atom(), #state{}) -> sync_state_result().
+handle_sync_event(event_dispatcher, _From, StateName,
+                  StateData = #state{event_dispatcher = ED}) ->
+    {reply, {ok, ED}, StateName, StateData};
 handle_sync_event(Event, _From, StateName, StateData) ->
     {stop, {StateName, undefined_event, Event}, StateData}.
 

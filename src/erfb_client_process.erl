@@ -20,6 +20,7 @@
          server_failed/2]).
 -export([send_event/2, set_pixel_format/2, set_encodings/2, update_request/3,
          client_disconnected/2, key/3, pointer/4, client_cut_text/2]).
+-export([event_dispatcher/1]).
 
 -include("erfblog.hrl").
 %% @headerfile "erfb.hrl"
@@ -40,14 +41,20 @@ start_link() ->
     gen_fsm:start_link(?MODULE, [], []).
 
 %% @hidden
--spec set_socket(pid(), port()) -> ok.
-set_socket(Pid, Socket) ->
-    gen_fsm:send_event(Pid, {socket_ready, Socket}).
+-spec set_socket(fsmref(), port()) -> ok.
+set_socket(Client, Socket) ->
+    gen_fsm:send_event(Client, {socket_ready, Socket}).
 
 %% @hidden
 -spec prep_stop(fsmref(), term()) -> ok.
-prep_stop(Server, Reason) ->
-    client_disconnected(Server, Reason).
+prep_stop(Client, Reason) ->
+    client_disconnected(Client, Reason).
+
+%% @spec event_dispatcher(fsmref()) -> pid()
+%% @doc  Returns the event dispatcher associated to this process
+-spec event_dispatcher(fsmref()) -> {ok, pid()}.
+event_dispatcher(Client) ->
+    gen_fsm:sync_send_all_state_event(Client, event_dispatcher).
 
 %% -- Client -> Server messages ---------------------------------------
 %% @spec send_event(fsmref(), client_event()) -> ok
@@ -575,6 +582,9 @@ handle_event(Event, StateName, StateData) ->
 
 %% @hidden
 -spec handle_sync_event(term(), term(), atom(), #state{}) -> sync_state_result().
+handle_sync_event(event_dispatcher, _From, StateName,
+                  StateData = #state{event_dispatcher = ED}) ->
+    {reply, {ok, ED}, StateName, StateData};
 handle_sync_event(Event, _From, StateName, StateData) ->
     {stop, {StateName, undefined_event, Event}, StateData}.
 

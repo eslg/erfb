@@ -12,7 +12,8 @@
 -author('Fernando Benavides <fbenavides@novamens.com>').
 
 -export([get_full_string/2, complete/3, complete/4, build_string/1,
-         pf_to_binary/1, timestamp/0, floor/1, ceiling/1]).
+         pf_to_binary/1, timestamp/0, floor/1, ceiling/1,
+         default_pixel_format/1]).
 
 -include("erfblog.hrl").
 %% @headerfile "erfb.hrl"
@@ -136,3 +137,41 @@ ceiling(X) ->
 timestamp() ->
     {Mgs,S,Ms} = erlang:now(),
     Mgs * 1000000000000 + S * 1000000 + Ms.
+
+%% @spec default_pixel_format(integer()) -> #pixel_format{}
+%% @doc  Returns a #pixel_format that matches the received Bits Per Pixel
+%%       These pixel formats are taken from those used by Chicken of the VNC
+-spec default_pixel_format(integer()) -> #pixel_format{}.
+default_pixel_format(32) ->
+    #pixel_format{bits_per_pixel= 32,
+                  depth         = 24,
+                  big_endian    = false,
+                  true_colour   = true,
+                  red_max       = 255,
+                  green_max     = 255,
+                  blue_max      = 255,
+                  red_shift     = 16,
+                  green_shift   = 8,
+                  blue_shift    = 0};
+default_pixel_format(16) ->
+    #pixel_format{bits_per_pixel= 16,
+                  depth         = 16,
+                  big_endian    = false,
+                  true_colour   = true,
+                  red_max       = 15,
+                  green_max     = 15,
+                  blue_max      = 15,
+                  red_shift     = 4,
+                  green_shift   = 0,
+                  blue_shift    = 12};
+default_pixel_format(8) ->
+    #pixel_format{bits_per_pixel= 8,
+                  depth         = 8,
+                  big_endian    = false,
+                  true_colour   = true,
+                  red_max       = 3,
+                  green_max     = 3,
+                  blue_max      = 3,
+                  red_shift     = 6,
+                  green_shift   = 4,
+                  blue_shift    = 2}.
