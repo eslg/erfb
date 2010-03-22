@@ -51,18 +51,30 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#notify-1">notify/1</a></td><td> Sends an event to the subscribed handlers.</td></tr>
+<tr><td valign="top"><a href="#notify-2">notify/2</a></td><td> Sends an event to the subscribed handlers.</td></tr>
 <tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td> Starts a new event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#start_link_unregistered-0">start_link_unregistered/0</a></td><td> Starts a new event dispatcher for a particular session (i.e.</td></tr>
 <tr><td valign="top"><a href="#subscribe-2">subscribe/2</a></td><td> Subscribes a handler to the event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#subscribe-3">subscribe/3</a></td><td> Subscribes a handler to the event dispatcher.</td></tr>
 <tr><td valign="top"><a href="#subscribe_link-2">subscribe_link/2</a></td><td> Subscribes and links a handler to the event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#subscribe_link-3">subscribe_link/3</a></td><td> Subscribes and links a handler to the event dispatcher.</td></tr>
 <tr><td valign="top"><a href="#subscriptions-0">subscriptions/0</a></td><td> Returns the list of subscriptions.</td></tr>
+<tr><td valign="top"><a href="#subscriptions-1">subscriptions/1</a></td><td> Returns the list of subscriptions.</td></tr>
 <tr><td valign="top"><a href="#unsubscribe-2">unsubscribe/2</a></td><td> Unsubscribes a handler from the event dispatcher.</td></tr>
+<tr><td valign="top"><a href="#unsubscribe-3">unsubscribe/3</a></td><td> Unsubscribes a handler from the event dispatcher.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
 
 <h3 class="function"><a name="notify-1">notify/1</a></h3>
 <div class="spec">
-<p><tt>notify(Event::<a href="#type-server_event">server_event()</a>) -&gt; ok</tt></p>
+<p><tt>notify(Event::#server_connected{} | #server_disconnected{}) -&gt; ok</tt></p>
+</div><p> Sends an event to the subscribed handlers</p>
+<p><b>See also:</b> <a href="gen_event.html#notify-2">gen_event:notify/2</a>.</p>
+
+<h3 class="function"><a name="notify-2">notify/2</a></h3>
+<div class="spec">
+<p><tt>notify(Dispatcher::pid(), Event::<a href="#type-server_event">server_event()</a>) -&gt; ok</tt></p>
 </div><p> Sends an event to the subscribed handlers</p>
 <p><b>See also:</b> <a href="gen_event.html#notify-2">gen_event:notify/2</a>.</p>
 
@@ -71,9 +83,20 @@
 <p><tt>start_link() -&gt; {ok, pid()}</tt></p>
 </div><p> Starts a new event dispatcher</p>
 
+<h3 class="function"><a name="start_link_unregistered-0">start_link_unregistered/0</a></h3>
+<div class="spec">
+<p><tt>start_link_unregistered() -&gt; {ok, pid()}</tt></p>
+</div><p> Starts a new event dispatcher for a particular session (i.e. not registered)</p>
+
 <h3 class="function"><a name="subscribe-2">subscribe/2</a></h3>
 <div class="spec">
 <p><tt>subscribe(EventHandler::<a href="#type-event_handler">event_handler()</a>, InitArgs::term()) -&gt; ok | {'EXIT', term()} | term()</tt></p>
+</div><p> Subscribes a handler to the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#add_handler-3">gen_event:add_handler/3</a>.</p>
+
+<h3 class="function"><a name="subscribe-3">subscribe/3</a></h3>
+<div class="spec">
+<p><tt>subscribe(Dispatcher::pid(), EventHandler::<a href="#type-event_handler">event_handler()</a>, InitArgs::term()) -&gt; ok | {'EXIT', term()} | term()</tt></p>
 </div><p> Subscribes a handler to the event dispatcher</p>
 <p><b>See also:</b> <a href="gen_event.html#add_handler-3">gen_event:add_handler/3</a>.</p>
 
@@ -83,9 +106,21 @@
 </div><p> Subscribes and links a handler to the event dispatcher</p>
 <p><b>See also:</b> <a href="gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a>.</p>
 
+<h3 class="function"><a name="subscribe_link-3">subscribe_link/3</a></h3>
+<div class="spec">
+<p><tt>subscribe_link(Dispatcher::pid(), EventHandler::<a href="#type-event_handler">event_handler()</a>, InitArgs::term()) -&gt; ok | {'EXIT', term()} | term()</tt></p>
+</div><p> Subscribes and links a handler to the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a>.</p>
+
 <h3 class="function"><a name="subscriptions-0">subscriptions/0</a></h3>
 <div class="spec">
 <p><tt>subscriptions() -&gt; [<a href="#type-event_handler">event_handler()</a>]</tt></p>
+</div><p> Returns the list of subscriptions</p>
+<p><b>See also:</b> <a href="gen_event.html#which_handlers-1">gen_event:which_handlers/1</a>.</p>
+
+<h3 class="function"><a name="subscriptions-1">subscriptions/1</a></h3>
+<div class="spec">
+<p><tt>subscriptions(Dispatcher::pid()) -&gt; [<a href="#type-event_handler">event_handler()</a>]</tt></p>
 </div><p> Returns the list of subscriptions</p>
 <p><b>See also:</b> <a href="gen_event.html#which_handlers-1">gen_event:which_handlers/1</a>.</p>
 
@@ -94,9 +129,15 @@
 <p><tt>unsubscribe(EventHandler::<a href="#type-event_handler">event_handler()</a>, Args::term()) -&gt; term() | {error, module_not_found} | {'EXIT', term()}</tt></p>
 </div><p> Unsubscribes a handler from the event dispatcher</p>
 <p><b>See also:</b> <a href="gen_event.html#delete_handler-3">gen_event:delete_handler/3</a>.</p>
+
+<h3 class="function"><a name="unsubscribe-3">unsubscribe/3</a></h3>
+<div class="spec">
+<p><tt>unsubscribe(Dispatcher::pid(), EventHandler::<a href="#type-event_handler">event_handler()</a>, Args::term()) -&gt; term() | {error, module_not_found} | {'EXIT', term()}</tt></p>
+</div><p> Unsubscribes a handler from the event dispatcher</p>
+<p><b>See also:</b> <a href="gen_event.html#delete_handler-3">gen_event:delete_handler/3</a>.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
-<p><i>Generated by EDoc, Mar 15 2010, 13:32:06.</i></p>
+<p><i>Generated by EDoc, Mar 22 2010, 13:02:31.</i></p>
 </body>
 </html>

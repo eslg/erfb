@@ -67,83 +67,105 @@ has only been tested with Erlang R13B.</p>
 </blockquote></li>
 <li><p>subscribe to the client event dispatcher:</p>
 
-<blockquote><pre><code>   erfb_client_event_dispatcher:subscribe_link(Handler, Args)
+<blockquote><pre><code>   erfb_client_event_dispatcher:subscribe_link(GeneralHandler, Args)
 </code></pre>
 
-<p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/2</a></p></blockquote></li>
-<li><p>start listening for events with your <code>Handler</code></p>
+<p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a></p></blockquote></li>
 
-<blockquote><p>   All events are implemented using records, and all of them have the following common fields:</p>
+    <li>wait for <code>#server_connected{event_dispatcher = Dispatcher :: pid()}</code> events</li>
+    <li><p>subscribe to the particular event dispatcher:</p>
+        <blockquote>
+            <pre><code>   erfb_client_event_dispatcher:subscribe_link(Dispatcher, Handler, Args)</code></pre>
+            <p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a></p>
+        </blockquote>
+    </li>
 
-<ul>
-<li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
-<li><code>server :: binary()</code>: The id of the server (assigned by <em>erfb</em> automatically)</li>
-<li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p>
+    <li>
+        <p>start listening for events with your <code>Handler</code></p>
 
-<p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p></li>
-<li><p><code>#server_connected{}</code></p></li>
-<li><code>#server_disconnected{}</code></li>
-<li><code>#set_colour_map_entries{}</code></li>
-<li><code>#update{}</code></li>
-<li><code>#bell{}</code></li>
-<li><code>#server_cut_text{}</code></li>
-<li><code>#unknown_message{}</code></li>
-</ul>
-</blockquote></li>
-<li><p>to send data to the server, use the functions exported by the <code>erfb_client_process</code> module</p></li>
+        <blockquote>
+            <p>   All events are implemented using records, and all of them have the following common fields:</p>
+
+            <ul>
+                <li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
+                <li><code>server :: binary()</code>: The id of the server (assigned by <em>erfb</em> automatically)</li>
+                <li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p></li>
+            </ul>
+            <p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p>
+            <ul>
+                <li><code>#set_colour_map_entries{}</code></li>
+                <li><code>#update{}</code></li>
+                <li><code>#bell{}</code></li>
+                <li><code>#server_cut_text{}</code></li>
+                <li><code>#unknown_message{}</code></li>
+            </ul>
+        </blockquote>
+    </li>
+    <li><p>to send data to the server, use the functions exported by the <code>erfb_client_process</code> module</p></li>
 </ul>
 
 
 <p>Follow this steps to build a RFB <em>Server</em>:</p>
 
 <ul>
-<li><p>start the server listener manager process:</p>
+    <li>
+        <p>start the server listener manager process:</p>
 
-<blockquote><pre><code>   erfb_server:start_link()
-</code></pre></blockquote></li>
-<li><p>start a new listener:</p>
+        <blockquote>
+            <pre><code>   erfb_server:start_link()</code></pre>
+        </blockquote>
+    </li>
+    <li>
+        <p>start a new listener:</p>
+        <blockquote>
+            <pre><code>   erfb_server_listener_manager:start_listener(Session, Encodings, Ip, Port, Backlog)</code></pre>
+            <p>   where the parameters are:</p>
+            <ul>
+                <li><code>Session :: #session{}</code>: The description of the server parameters (including window size, name, pixel format and others)</li>
+                <li><code>Encodings :: [{integer(), atom()}]</code>: The list of encodings that the server will support (each one with the module that will be used to interpret it, this modules must comply to the erfb_encoding behaviour)</li>
+                <li><code>Ip :: ip()</code>: The IP where you want the server listener process to listen for client connections</li>
+                <li><code>Port :: integer()</code>: (Usually 59xx) The port where you want the server listener process to listen for client connections</li>
+                <li><code>Backlog :: integer()</code>: The <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2">backlog</a> for the server listener process socket</li>
+            </ul>
+        </blockquote>
+    </li>
+    <li>
+        <p>subscribe to the server event dispatcher:</p>
+        <blockquote>
+            <pre><code>   erfb_server_event_dispatcher:subscribe_link(GeneralHandler, Args)</code></pre>
+            <p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a></p>
+        </blockquote>
+    </li>
 
-<blockquote><pre><code>   erfb_server_listener_manager:start_listener(Session, Encodings, Ip, Port, Backlog)
-</code></pre>
+    <li>wait for <code>#client_connected{event_dispatcher = Dispatcher :: pid()}</code> events</li>
+    <li>
+        <p>subscribe to the particular event dispatcher:</p>
+        <blockquote><pre><code>   erfb_server_event_dispatcher:subscribe_link(Dispatcher, Handler, Args)</code></pre>
+            <p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/3</a></p>
+        </blockquote>
+    </li>
 
-<p>   where the parameters are:</p>
-
-<ul>
-<li><code>Session :: #session{}</code>: The description of the server parameters (including window size, name, pixel format and others)</li>
-<li><code>Encodings :: [{integer(), atom()}]</code>: The list of encodings that the server will support (each one with the module that will be used to interpret it, this modules must comply to the erfb_encoding behaviour)</li>
-<li><code>Ip :: ip()</code>: The IP where you want the server listener process to listen for client connections</li>
-<li><code>Port :: integer()</code>: (Usually 59xx) The port where you want the server listener process to listen for client connections</li>
-<li><code>Backlog :: integer()</code>: The <a href="http://ftp.sunet.se/pub/lang/erlang/doc/man/gen_tcp.html#listen-2">backlog</a> for the server listener process socket</li>
-</ul>
-</blockquote></li>
-<li><p>subscribe to the server event dispatcher:</p>
-
-<blockquote><pre><code>   erfb_server_event_dispatcher:subscribe_link(Handler, Args)
-</code></pre>
-
-<p>  where the parameters are equivalent to those of <a href="http://demo.erlang.org/doc/man/gen_event.html#add_sup_handler-3">gen_event:add_sup_handler/2</a></p></blockquote></li>
-<li><p>start listening for events with your <code>Handler</code></p>
-
-<blockquote><p>   All events are implemented using records, and all of them have the following common fields:</p>
-
-<ul>
-<li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
-<li><code>client :: binary()</code>: The id of the client (assigned by <em>erfb</em> automatically) <em>Note:</em> a server may have more than just one client</li>
-<li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p>
-
-<p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p></li>
-<li><p><code>#client_connected{}</code></p></li>
-<li><code>#listener_disconnected{}</code></li>
-<li><code>#client_disconnected{}</code></li>
-<li><code>#set_pixel_format{}</code></li>
-<li><code>#set_encodings{}</code></li>
-<li><code>#update_request{}</code></li>
-<li><code>#key{}</code></li>
-<li><code>#pointer{}</code></li>
-<li><code>#client_cut_text{}</code></li>
-<li><code>#unknown_message{}</code></li>
-</ul>
-</blockquote></li>
-<li><p>to send data to the clients, use the functions exported by the <code>erfb_server_process</code> module</p></li>
+    <li>
+        <p>start listening for events with your <code>Handler</code></p>
+        <blockquote>
+            <p>   All events are implemented using records, and all of them have the following common fields:</p>
+            <ul>
+                <li><code>sender :: pid()</code>: The pid of the process that sent the event</li>
+                <li><code>client :: binary()</code>: The id of the client (assigned by <em>erfb</em> automatically) <em>Note:</em> a server may have more than just one client</li>
+                <li><p><code>raw_data :: binary()</code>: The actual bytes sent by the RFB server</p></li>
+            </ul>
+            <p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p>
+            <ul>
+                <li><code>#set_pixel_format{}</code></li>
+                <li><code>#set_encodings{}</code></li>
+                <li><code>#update_request{}</code></li>
+                <li><code>#key{}</code></li>
+                <li><code>#pointer{}</code></li>
+                <li><code>#client_cut_text{}</code></li>
+                <li><code>#unknown_message{}</code></li>
+            </ul>
+        </blockquote>
+    </li>
+    <li><p>to send data to the clients, use the functions exported by the <code>erfb_server_process</code> module</p></li>
 </ul>
 </div>
