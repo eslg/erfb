@@ -415,8 +415,8 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
 -spec running(term(), term(), #state{}) -> sync_state_result().
 running(#set_pixel_format{pixel_format  = PF,
                           raw_data      = RawData},
-        _From, State = #state{socket    = S,
-                              session   = Session}) ->
+        From, State = #state{socket    = S,
+                             session   = Session}) ->
     Message =
         case RawData of
             undefined ->
@@ -425,14 +425,15 @@ running(#set_pixel_format{pixel_format  = PF,
             RawData ->
                 RawData
         end,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Setting pixel format: ~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State#state{session =
+    {next_state, running, State#state{session =
                                          Session#session{pixel_format = PF}}};
 running(#set_encodings{encodings = Encodings,
                        raw_data  = RawData},
-        _From, State = #state{socket    = S,
-                              encodings = CurrentEncodings}) ->
+        From, State = #state{socket    = S,
+                             encodings = CurrentEncodings}) ->
     
     {Intersection, AddedEncodings} =
         lists:partition(
@@ -475,15 +476,16 @@ running(#set_encodings{encodings = Encodings,
             RawData ->
                 RawData
         end,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Setting encodings: ~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State#state{encodings = FinalEncodings}};
+    {next_state, running, State#state{encodings = FinalEncodings}};
 running(#update_request{incremental = Incremental,
                         box         = Box,
                         raw_data    = undefined},
-        _From, State = #state{socket    = S,
-                              session   = #session{width = W,
-                                                   height= H}}) ->
+        From, State = #state{socket    = S,
+                             session   = #session{width = W,
+                                                  height= H}}) ->
     IncrementalByte = case Incremental of
                           true -> 1;
                           false -> 0
@@ -502,18 +504,20 @@ running(#update_request{incremental = Incremental,
                 (Box#box.y):2/unit:8,
                 FinalWidth:2/unit:8,
                 FinalHeight:2/unit:8>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Requesting update: ~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#update_request{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Requesting update: ~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#key{down       = Down,
              code       = Code,
              raw_data   = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     DownByte = case Down of
                    true -> 1;
                    false -> 0
@@ -522,45 +526,51 @@ running(#key{down       = Down,
                 DownByte:1/unit:8,
                 0:2/unit:8, %% Padding
                 Code:4/unit:8>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Key Event~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#key{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Key Event~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#pointer{button_mask = ButtonMask,
                  x = X, y = Y,
                  raw_data = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     Message = <<?MSG_POINTER_EVENT:1/unit:8,
                 ButtonMask:1/unit:8,
                 X:2/unit:8,
                 Y:2/unit:8>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Pointer Event~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#pointer{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Pointer Event~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#client_cut_text{text       = Text,
                          raw_data   = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     TextStr = erfb_utils:build_string(Text),
     Message = <<?MSG_CLIENT_CUT_TEXT:1/unit:8,
                 0:3/unit:8, %% Padding
                 TextStr/binary>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#client_cut_text{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#client_disconnected{reason = Reason}, _From, State) ->
     ?INFO("Client disconnected: ~p~n", [Reason]),
     {stop, normal, ok, State}.

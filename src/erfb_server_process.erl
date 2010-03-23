@@ -495,7 +495,7 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
 -spec running(term(), term(), #state{}) -> sync_state_result().
 running(#update{rectangles  = Rs,
                 raw_data    = undefined}, 
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     Length      = erlang:length(Rs),
     {Rectangles, NewState} =
         lists:foldl(
@@ -508,18 +508,20 @@ running(#update{rectangles  = Rs,
                     0:1/unit:8, %% Padding
                     Length:2/unit:8,
                     Rectangles/binary>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Updating~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, NewState};
+    {next_state, running, NewState};
 running(#update{raw_data    = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Updating~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#set_colour_map_entries{first_colour = First,
                                 colours      = Colours,
                                 raw_data     = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     Length      = erlang:length(Colours),
     ColoursStr  = << <<(C#colour.red):2/unit:8,
                        (C#colour.green):2/unit:8,
@@ -529,40 +531,46 @@ running(#set_colour_map_entries{first_colour = First,
                     First:2/unit:8,
                     Length:2/unit:8,
                     ColoursStr/binary>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Setting colour entries~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};    
+    {next_state, running, State};    
 running(#set_colour_map_entries{raw_data    = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Setting colour entries~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#bell{raw_data = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     Message = <<?MSG_BELL>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Ringing the Bell~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};    
+    {next_state, running, State};    
 running(#bell{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Ringing the Bell~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};    
+    {next_state, running, State};    
 running(#server_cut_text{text       = Text,
                          raw_data   = undefined},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
     TextStr = erfb_utils:build_string(Text),
     Message = <<?MSG_SERVER_CUT_TEXT:1/unit:8,
                 0:3/unit:8, %% Padding
                 TextStr/binary>>,
+    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#server_cut_text{raw_data = Message},
-        _From, State = #state{socket = S}) ->
+        From, State = #state{socket = S}) ->
+    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
     ok = gen_tcp:send(S, Message),
-    {reply, ok, running, State};
+    {next_state, running, State};
 running(#server_disconnected{reason = Reason}, _From, State) ->
     ?INFO("Server disconnected: ~p~n", [Reason]),
     {stop, normal, ok, State}.
