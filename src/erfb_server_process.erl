@@ -16,7 +16,7 @@
 -export([start_link/2, set_socket/2, prep_stop/2]).
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 -export([wait_for_socket/2, wait_for_handshake/2, wait_for_security_type/2,
-         wait_for_vnc_response/2, wait_for_client_init/2, running/2, running/3]).
+         wait_for_vnc_response/2, wait_for_client_init/2, running/2]).
 -export([send_event/2]).
 -export([update/2, set_colour_map_entries/3, bell/1, server_cut_text/2, server_disconnected/2]).
 -export([event_dispatcher/1]).
@@ -64,7 +64,8 @@ event_dispatcher(Server) ->
 %%       For a description of the events, check the <a href="http://www.tigervnc.com/cgi-bin/rfbproto#client-to-server-messages">RFB Protocol Definition</a>
 -spec send_event(fsmref(), server_event()) -> ok.
 send_event(Server, Event) ->
-    gen_fsm:sync_send_event(Server, Event).
+    ?DEBUG("Sending ~p to server ~p~n", [element(1, Event), Server]),
+    gen_fsm:send_event(Server, Event).
 
 %% @spec update(fsmref(), [#rectangle{}]) -> ok
 %% @equiv send_event(Server, #update{rectangles = Rectangles})
@@ -133,7 +134,9 @@ wait_for_socket({socket_ready, Socket}, State = #state{session = Session}) ->
     VersionStr = bstr:join([bstr:lpad(bstr:from_integer(Major), 3, $0),
                             bstr:lpad(bstr:from_integer(Minor), 3, $0)],
                            $.), 
-    ok = gen_tcp:send(Socket, <<?PROTOCOL_NAME, $\s, VersionStr/binary, $\n>>),
+    ok = erfb_utils:tcp_send(Socket,
+                             <<?PROTOCOL_NAME, $\s, VersionStr/binary, $\n>>,
+                             State),
     {next_state, wait_for_handshake,
      State#state{socket = Socket,
                  session= (State#state.session)#session{client = ClientId}},
@@ -171,9 +174,13 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
             Error = erfb_utils:build_string(<<"Unsupported Version">>),
             case SV of
                 ?MIN_VERSION ->
-                    ok = gen_tcp:send(S, <<?SECURITY_INVALID:4/unit:8, Error/binary>>);
+                    ok = erfb_utils:tcp_send(S,
+                                             <<?SECURITY_INVALID:4/unit:8, Error/binary>>,
+                                             State);
                 _ ->
-                    ok = gen_tcp:send(S, <<?SECURITY_INVALID:1/unit:8, Error/binary>>)
+                    ok = erfb_utils:tcp_send(S,
+                                             <<?SECURITY_INVALID:1/unit:8, Error/binary>>,
+                                             State)
             end,    
             {stop, normal, State};
         ?MIN_VERSION ->
@@ -182,10 +189,14 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
                                         (State#state.session)#session{version = Version}},
             case Security of
                 [{vnc, _Password}] ->
-                    ok = gen_tcp:send(S, <<?SECURITY_VNC:4/integer-unit:8>>),
+                    ok = erfb_utils:tcp_send(S,
+                                             <<?SECURITY_VNC:4/integer-unit:8>>,
+                                             NextState),
                     vnc_security(NextState);
                 _ ->
-                    ok = gen_tcp:send(S, <<?SECURITY_NONE:4/integer-unit:8>>),
+                    ok = erfb_utils:tcp_send(S,
+                                             <<?SECURITY_NONE:4/integer-unit:8>>,
+                                             NextState),
                     {next_state, wait_for_client_init, NextState, ?FSM_TIMEOUT}
             end;
         _ ->
@@ -197,7 +208,9 @@ wait_for_handshake({data, Data = <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., M
                                       none -> ?SECURITY_NONE;
                                       {vnc, _} -> ?SECURITY_VNC
                                  end)>> || Sec <- Security>>,
-            ok = gen_tcp:send(S, <<SecurityTypes:1/unit:8, SecurityCodes/binary>>),
+            ok = erfb_utils:tcp_send(S,
+                                     <<SecurityTypes:1/unit:8, SecurityCodes/binary>>,
+                                     NextState),
             {next_state, wait_for_security_type, NextState, ?FSM_TIMEOUT}
     end;
 wait_for_handshake(timeout, State) ->
@@ -216,7 +229,7 @@ wait_for_security_type({data, <<?SECURITY_NONE>>}, State = #state{socket = S,
                                                                   session = #session{version = V}})
   when V >= ?MAX_VERSION ->
     ?DEBUG("Security None choosen~n", []),
-    ok = gen_tcp:send(S, <<?SECURITY_RESULT_OK:4/unit:8>>),
+    ok = erfb_utils:tcp_send(S, <<?SECURITY_RESULT_OK:4/unit:8>>, State),
     {next_state, wait_for_client_init, State, ?FSM_TIMEOUT};
 wait_for_security_type({data, <<?SECURITY_VNC>>}, State) ->
     ?DEBUG("VNC Security choosen~n", []),
@@ -249,15 +262,14 @@ wait_for_vnc_response({data, Response},
     case Cipher of
         Response ->
             ?DEBUG("Password OK~n", []),
-            ok = gen_tcp:send(S, <<?SECURITY_RESULT_OK:4/unit:8>>),
-            %% ok = gen_tcp:send(S, <<?SECURITY_RESULT_OK:4/unit:8>>),
+            ok = erfb_utils:tcp_send(S, <<?SECURITY_RESULT_OK:4/unit:8>>, State),
             {next_state, wait_for_client_init, State, ?FSM_TIMEOUT};
         _ ->
             ?ERROR("Invalid Password~nVNC response:~n\tChallenge= ~p,~n\tPassword= ~p,~n\tResponse= ~p~n\tCipher= ~p~n", [Challenge, DesKey, Response, Cipher]),
-            ok = gen_tcp:send(S, <<?SECURITY_RESULT_NOK:4/unit:8>>),
+            ok = erfb_utils:tcp_send(S, <<?SECURITY_RESULT_NOK:4/unit:8>>, State),
             case Version of
                 V when V >= ?MAX_VERSION ->
-                    ok = gen_tcp:send(S, erfb_utils:build_string(<<"Invalid Password">>));
+                    ok = erfb_utils:tcp_send(S, erfb_utils:build_string(<<"Invalid Password">>), State);
                 _ ->
                     void
             end,
@@ -274,7 +286,7 @@ wait_for_vnc_response(Event, State) ->
 -spec wait_for_client_init(term(), #state{}) -> async_state_result().
 wait_for_client_init({data, <<?FALSE>>}, State = #state{socket = S}) -> %%NOTE: exclusive access request
     ?ERROR("Client wants exclusive access~n", []),
-    ok = gen_tcp:send(S, erfb_utils:build_string(<<"Exclusive access is forbidden">>)),
+    ok = erfb_utils:tcp_send(S, erfb_utils:build_string(<<"Exclusive access is forbidden">>), State),
     {stop, normal, State};
 wait_for_client_init({data, <<Flag:1/unit:8>>},
                      State = #state{socket = S,
@@ -286,7 +298,7 @@ wait_for_client_init({data, <<Flag:1/unit:8>>},
     NameBin = erfb_utils:build_string(Session#session.name),
     Message = <<Width:2/unit:8, Height:2/unit:8, PFBin/binary, NameBin/binary>>,
     ?DEBUG("Initializing~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {ok, ED} = erfb_server_event_dispatcher:start_link_unregistered(),
     ok = erfb_server_event_dispatcher:notify(
            #client_connected{server             = Session#session.server,
@@ -489,13 +501,10 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
                             client   = (State#state.session)#session.client,
                             type     = MessageType,
                             raw_data = Data}),
-    {next_state, running, State}.
-
-%% @hidden
--spec running(term(), term(), #state{}) -> sync_state_result().
+    {next_state, running, State};
 running(#update{rectangles  = Rs,
                 raw_data    = undefined}, 
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     Length      = erlang:length(Rs),
     {Rectangles, NewState} =
         lists:foldl(
@@ -508,20 +517,18 @@ running(#update{rectangles  = Rs,
                     0:1/unit:8, %% Padding
                     Length:2/unit:8,
                     Rectangles/binary>>,
-    gen_fsm:reply(From, ok),
-    ?DEBUG("Updating~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ?TRACE("Updating~n", []), ?TRACE("\t~p~n", [Message]),
+    ok = erfb_utils:tcp_send(S, Message, NewState),
     {next_state, running, NewState};
 running(#update{raw_data    = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Updating~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#set_colour_map_entries{first_colour = First,
                                 colours      = Colours,
                                 raw_data     = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     Length      = erlang:length(Colours),
     ColoursStr  = << <<(C#colour.red):2/unit:8,
                        (C#colour.green):2/unit:8,
@@ -531,49 +538,43 @@ running(#set_colour_map_entries{first_colour = First,
                     First:2/unit:8,
                     Length:2/unit:8,
                     ColoursStr/binary>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Setting colour entries~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};    
 running(#set_colour_map_entries{raw_data    = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Setting colour entries~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#bell{raw_data = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     Message = <<?MSG_BELL>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Ringing the Bell~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};    
 running(#bell{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Ringing the Bell~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};    
 running(#server_cut_text{text       = Text,
                          raw_data   = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     TextStr = erfb_utils:build_string(Text),
     Message = <<?MSG_SERVER_CUT_TEXT:1/unit:8,
                 0:3/unit:8, %% Padding
                 TextStr/binary>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#server_cut_text{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
-running(#server_disconnected{reason = Reason}, _From, State) ->
+running(#server_disconnected{reason = Reason}, State) ->
     ?INFO("Server disconnected: ~p~n", [Reason]),
-    {stop, normal, ok, State}.
+    {stop, normal, State}.
 
 
 %% OTHER EVENTS -------------------------------------------------------
@@ -642,7 +643,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 -spec vnc_security(#state{}) -> {next_state,wait_for_vnc_response,#state{},?FSM_TIMEOUT}.
 vnc_security(State = #state{socket = S}) ->
     Challenge = << <<(random:uniform(255)):1/unit:8>> || _ <- lists:seq(1,16) >>,
-    ok = gen_tcp:send(S, Challenge),
+    ok = erfb_utils:tcp_send(S, Challenge, State),
     {next_state, wait_for_vnc_response,
      State#state{vnc_challenge = Challenge}, ?FSM_TIMEOUT}.
 

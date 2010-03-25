@@ -13,7 +13,7 @@
 
 -export([get_full_string/2, complete/3, complete/4, build_string/1,
          pf_to_binary/1, timestamp/0, floor/1, ceiling/1,
-         default_pixel_format/1]).
+         default_pixel_format/1, tcp_send/3]).
 
 -include("erfblog.hrl").
 %% @headerfile "erfb.hrl"
@@ -175,3 +175,29 @@ default_pixel_format(8) ->
                   red_shift     = 6,
                   green_shift   = 4,
                   blue_shift    = 2}.
+
+%% @spec tcp_send(port(), binary(), term()) -> ok
+%% @doc  Sends a message through TCP socket or fails gracefully 
+%%       (in a gen_fsm fashion)
+-spec tcp_send(port(), binary(), term()) -> ok.
+tcp_send(Socket, Message, State) ->
+    try gen_tcp:send(Socket, Message) of
+        ok ->
+            ok;
+        {error, Error} ->
+            ?ERROR("Couldn't send msg through TCP~n\tError: ~p~n", [Error]),
+            throw({stop, normal, State});
+        {Error, _} ->
+            ?ERROR("Couldn't send msg through TCP~n\tError: ~p~n", [Error]),
+            throw({stop, normal, State});
+        Error ->
+            ?ERROR("Couldn't send msg through TCP~n\tError: ~p~n", [Error]),
+            throw({stop, normal, State})
+    catch
+        _:{Exception, _} ->
+            ?ERROR("Couldn't send msg through TCP~n\tError: ~p~n", [Exception]),
+            throw({stop, normal, State});
+        _:Exception ->
+            ?ERROR("Couldn't send msg through TCP~n\tError: ~p~n", [Exception]),
+            throw({stop, normal, State})
+    end.

@@ -16,7 +16,7 @@
 -export([start_link/0, prep_stop/2, set_socket/2]).
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 -export([wait_for_socket/2, wait_for_handshake/2, wait_for_security/2,
-         wait_for_security_result/2, wait_for_server_init/2, running/2, running/3,
+         wait_for_security_result/2, wait_for_server_init/2, running/2,
          server_failed/2]).
 -export([send_event/2, set_pixel_format/2, set_encodings/2, update_request/3,
          client_disconnected/2, key/3, pointer/4, client_cut_text/2]).
@@ -65,7 +65,8 @@ event_dispatcher(Client) ->
 %%       For a description of the events, check the <a href="http://www.tigervnc.com/cgi-bin/rfbproto#client-to-server-messages">RFB Protocol Definition</a>
 -spec send_event(fsmref(), client_event()) -> ok.
 send_event(Client, Event) ->
-    ok = gen_fsm:sync_send_event(Client, Event).
+    ?DEBUG("Sending ~p to client ~p~n", [element(1, Event), Client]),
+    gen_fsm:send_event(Client, Event).
 
 %% @spec set_pixel_format(Client::fsmref(), PixelFormat::#pixel_format{}) -> ok
 %% @equiv send_event(Client, #set_pixel_format{pixel_format = PixelFormat})
@@ -172,7 +173,9 @@ wait_for_handshake({data, <<?PROTOCOL_NAME, $\s, MajorStr:3/binary, $., MinorStr
             VersionStr = bstr:join([bstr:lpad(bstr:from_integer(Major), 3, $0),
                                     bstr:lpad(bstr:from_integer(Minor), 3, $0)],
                                     $.), 
-            ok = gen_tcp:send(S, <<?PROTOCOL_NAME, $\s, VersionStr/binary, $\n>>),
+            ok = erfb_utils:tcp_send(S,
+                                     <<?PROTOCOL_NAME, $\s, VersionStr/binary, $\n>>,
+                                     State),
             {next_state, wait_for_security,
              State#state{session = (State#state.session)#session{version = Version}},
              ?FSM_TIMEOUT}
@@ -213,7 +216,7 @@ wait_for_security({data, <<Count:1/binary, AllTypes/binary>>},
     Types = lists:sublist(bstr:to_list(AllTypes), 1, hd(bstr:to_list(Count))),
     case lists:member(?SECURITY_NONE, Types) of
         true ->
-            ok = gen_tcp:send(S, <<?SECURITY_NONE>>),
+            ok = erfb_utils:tcp_send(S, <<?SECURITY_NONE>>, State),
             case V of
                 ?MID_VERSION ->
                     client_init(State);
@@ -409,14 +412,11 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
                             client  = (State#state.session)#session.client,
                             type    = MessageType,
                             raw_data= Data}),
-    {next_state, running, State}.
-
-%% @hidden
--spec running(term(), term(), #state{}) -> sync_state_result().
+    {next_state, running, State};
 running(#set_pixel_format{pixel_format  = PF,
                           raw_data      = RawData},
-        From, State = #state{socket    = S,
-                             session   = Session}) ->
+        State = #state{socket    = S,
+                       session   = Session}) ->
     Message =
         case RawData of
             undefined ->
@@ -425,15 +425,14 @@ running(#set_pixel_format{pixel_format  = PF,
             RawData ->
                 RawData
         end,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Setting pixel format: ~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State#state{session =
                                          Session#session{pixel_format = PF}}};
 running(#set_encodings{encodings = Encodings,
                        raw_data  = RawData},
-        From, State = #state{socket    = S,
-                             encodings = CurrentEncodings}) ->
+        State = #state{socket    = S,
+                       encodings = CurrentEncodings}) ->
     
     {Intersection, AddedEncodings} =
         lists:partition(
@@ -476,16 +475,15 @@ running(#set_encodings{encodings = Encodings,
             RawData ->
                 RawData
         end,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Setting encodings: ~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State#state{encodings = FinalEncodings}};
 running(#update_request{incremental = Incremental,
                         box         = Box,
                         raw_data    = undefined},
-        From, State = #state{socket    = S,
-                             session   = #session{width = W,
-                                                  height= H}}) ->
+        State = #state{socket    = S,
+                       session   = #session{width = W,
+                                            height= H}}) ->
     IncrementalByte = case Incremental of
                           true -> 1;
                           false -> 0
@@ -504,20 +502,18 @@ running(#update_request{incremental = Incremental,
                 (Box#box.y):2/unit:8,
                 FinalWidth:2/unit:8,
                 FinalHeight:2/unit:8>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Requesting update: ~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#update_request{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
-    ?DEBUG("Requesting update: ~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+        State = #state{socket = S}) ->
+    ?TRACE("Requesting update: ~p~n", [Message]),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#key{down       = Down,
              code       = Code,
              raw_data   = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     DownByte = case Down of
                    true -> 1;
                    false -> 0
@@ -526,54 +522,48 @@ running(#key{down       = Down,
                 DownByte:1/unit:8,
                 0:2/unit:8, %% Padding
                 Code:4/unit:8>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Key Event~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#key{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Key Event~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#pointer{button_mask = ButtonMask,
                  x = X, y = Y,
                  raw_data = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     Message = <<?MSG_POINTER_EVENT:1/unit:8,
                 ButtonMask:1/unit:8,
                 X:2/unit:8,
                 Y:2/unit:8>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Pointer Event~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#pointer{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Pointer Event~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#client_cut_text{text       = Text,
                          raw_data   = undefined},
-        From, State = #state{socket = S}) ->
+        State = #state{socket = S}) ->
     TextStr = erfb_utils:build_string(Text),
     Message = <<?MSG_CLIENT_CUT_TEXT:1/unit:8,
                 0:3/unit:8, %% Padding
                 TextStr/binary>>,
-    gen_fsm:reply(From, ok),
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
 running(#client_cut_text{raw_data = Message},
-        From, State = #state{socket = S}) ->
-    gen_fsm:reply(From, ok),
+        State = #state{socket = S}) ->
     ?DEBUG("Cutting the Text~n", []), ?TRACE("\t~p~n", [Message]),
-    ok = gen_tcp:send(S, Message),
+    ok = erfb_utils:tcp_send(S, Message, State),
     {next_state, running, State};
-running(#client_disconnected{reason = Reason}, _From, State) ->
+running(#client_disconnected{reason = Reason}, State) ->
     ?INFO("Client disconnected: ~p~n", [Reason]),
-    {stop, normal, ok, State}.
+    {stop, normal, State}.
 
 %% @hidden
 -spec server_failed(term(), #state{}) -> async_state_result().
@@ -647,7 +637,7 @@ code_change(_OldVsn, StateName, StateData, _Extra) ->
 %% ====================================================================
 -spec client_init(#state{}) -> {'next_state','wait_for_server_init',#state{}, ?FSM_TIMEOUT}.
 client_init(State = #state{socket = S}) ->
-    ok = gen_tcp:send(S, <<1>>), %%NOTE: Allways shared (we're just broadcasting)
+    ok = erfb_utils:tcp_send(S, <<1>>, State),
     ?DEBUG("Client Init sent~n", []),
     {next_state, wait_for_server_init, State, ?FSM_TIMEOUT}.
 
@@ -694,7 +684,7 @@ read_rectangles(Missing, <<Head:12/binary, Rest/binary>>,
                     <<BytesRead/binary, Head/binary, Bytes/binary>>,
                     [Rectangle | Accum]);
 read_rectangles(Missing, Rest, State, BytesRead, Accum) ->
-    ?DEBUG("We have just ~p to read but we need ~p rects. more.~n", [Rest, Missing]),
+    ?TRACE("We have just ~p to read but we need ~p rects. more.~n", [Rest, Missing]),
     case erfb_utils:complete(Rest,
                              12, %%NOTE: Rect box length - i.e. we're looking for the next rectangle
                              State#state.socket) of
