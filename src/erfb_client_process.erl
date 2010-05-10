@@ -322,13 +322,13 @@ running({data, <<?MSG_FRAMEBUFFER_UPDATE, _Padding:1/unit:8, FramebufferUpdate/b
                                     BytesRead/binary>>]),
     ok = erfb_client_event_dispatcher:notify(
            State#state.event_dispatcher,
-           #update{server       = (NewState#state.session)#session.server,
-                   client       = (NewState#state.session)#session.client,
-                   raw_data     = <<?MSG_FRAMEBUFFER_UPDATE,
-                                    _Padding:1/unit:8,
-                                    Length:2/unit:8,
-                                    BytesRead/binary>>,
-                   rectangles   = Rectangles}),
+           #rfbupdate{server       = (NewState#state.session)#session.server,
+                      client       = (NewState#state.session)#session.client,
+                      raw_data     = <<?MSG_FRAMEBUFFER_UPDATE,
+                                       _Padding:1/unit:8,
+                                       Length:2/unit:8,
+                                       BytesRead/binary>>,
+                      rectangles   = Rectangles}),
     case bstr:len(NextMessage) of
         0 ->
             {next_state, running, NewState};

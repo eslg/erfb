@@ -68,10 +68,10 @@ send_event(Server, Event) ->
     gen_fsm:send_event(Server, Event).
 
 %% @spec update(fsmref(), [#rectangle{}]) -> ok
-%% @equiv send_event(Server, #update{rectangles = Rectangles})
+%% @equiv send_event(Server, #rfbupdate{rectangles = Rectangles})
 -spec update(fsmref(), [#rectangle{}]) -> ok.
 update(Server, Rectangles) ->
-    send_event(Server, #update{rectangles = Rectangles}).
+    send_event(Server, #rfbupdate{rectangles = Rectangles}).
 
 %% @spec set_colour_map_entries(fsmref(), integer(), [#colour{}]) -> ok
 %% @equiv send_event(Server, #set_colour_map_entries{first_colour = FirstColour, colours = Colours})
@@ -502,8 +502,8 @@ running({data, Data = <<MessageType:1/unit:8, _/binary>>}, State) ->
                             type     = MessageType,
                             raw_data = Data}),
     {next_state, running, State};
-running(#update{rectangles  = Rs,
-                raw_data    = undefined}, 
+running(#rfbupdate{rectangles  = Rs,
+                   raw_data    = undefined}, 
         State = #state{socket = S}) ->
     Length      = erlang:length(Rs),
     {Rectangles, NewState} =
@@ -520,7 +520,7 @@ running(#update{rectangles  = Rs,
     ?TRACE("Updating~n", []), ?TRACE("\t~p~n", [Message]),
     ok = erfb_utils:tcp_send(S, Message, NewState),
     {next_state, running, NewState};
-running(#update{raw_data    = Message},
+running(#rfbupdate{raw_data    = Message},
         State = #state{socket = S}) ->
     ?DEBUG("Updating~n", []), ?TRACE("\t~p~n", [Message]),
     ok = erfb_utils:tcp_send(S, Message, State),

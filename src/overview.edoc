@@ -94,7 +94,7 @@ has only been tested with Erlang R13B.</p>
             <p>Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):</p>
             <ul>
                 <li><code>#set_colour_map_entries{}</code></li>
-                <li><code>#update{}</code></li>
+                <li><code>#rfbupdate{}</code></li>
                 <li><code>#bell{}</code></li>
                 <li><code>#server_cut_text{}</code></li>
                 <li><code>#unknown_message{}</code></li>

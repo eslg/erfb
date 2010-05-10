@@ -52,7 +52,7 @@ Follow this steps to build a RFB *Client*:
 >    Every event has its own fields too.  The possible events are (check the RFB protocol definition for their meanings):
 >
 >  * `#set_colour_map_entries{}`
->  * `#update{}`
+>  * `#rfbupdate{}`
 >  * `#bell{}`
 >  * `#server_cut_text{}`
 >  * `#unknown_message{}`
