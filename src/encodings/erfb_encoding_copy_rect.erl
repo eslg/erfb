@@ -31,9 +31,9 @@ init() -> {ok, #state{}}.
 
 %% @hidden
 -spec read(#pixel_format{}, #box{}, binary(), port(), #state{}) -> {ok, Data :: {integer(), integer()}, Read::binary(), Rest::binary(), #state{}}.
-read(_PF, Box, <<X:4/unit:8, Y:4/unit:8, Rest/binary>>, _Socket, State) ->
-    ?DEBUG("CopyRect reader starting for ~p.  Result: {~p, ~p}~n", [Box, X, Y]),
-    {ok, {X, Y}, <<X:4/unit:8, Y:4/unit:8>>, Rest, State};
+read(_PF, Box, <<X:1/unit:16, Y:1/unit:16, Rest/binary>>, _Socket, State) ->
+    ?DEBUG("CopyRect reader starting for ~p.  Result: {~p, ~p}~n\tRest: ~p~n", [Box, X, Y, Rest]),
+    {ok, {X, Y}, <<X:1/unit:16, Y:1/unit:16>>, Rest, State};
 read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("CopyRect reader starting for ~p.  Not enough bytes.~n", [Box]),
     read(PF, Box, erfb_utils:complete(Bytes, 8, Socket, true), Socket, State).
@@ -41,7 +41,7 @@ read(PF, Box, Bytes, Socket, State) ->
 %% @hidden
 -spec write(#session{}, #box{}, term(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
 write(_Session, _Box, {X, Y}, State) ->
-    {ok, <<X:4/unit:8, Y:4/unit:8>>, State};
+    {ok, <<X:1/unit:16, Y:1/unit:16>>, State};
 write(_Session, _, Data, State) ->
     ?ERROR("Invalid data for copy_rect encoding:~p~n", [Data]),
     {error, invalid_data, State}.

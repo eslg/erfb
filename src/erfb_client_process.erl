@@ -65,7 +65,7 @@ event_dispatcher(Client) ->
 %%       For a description of the events, check the <a href="http://www.tigervnc.com/cgi-bin/rfbproto#client-to-server-messages">RFB Protocol Definition</a>
 -spec send_event(fsmref(), client_event()) -> ok.
 send_event(Client, Event) ->
-    ?DEBUG("Sending ~p to client ~p~n", [element(1, Event), Client]),
+    ?DEBUG("Sending ~p to server ~p~n", [element(1, Event), Client]),
     gen_fsm:send_event(Client, Event).
 
 %% @spec set_pixel_format(Client::fsmref(), PixelFormat::#pixel_format{}) -> ok
@@ -644,6 +644,7 @@ client_init(State = #state{socket = S}) ->
 -spec read_rectangles(pos_integer(), binary(), #state{}) -> {Result :: [#rectangle{}], Read :: binary(), Rest :: binary(), NewState :: #state{}}.
 read_rectangles(Count, Stream, State) ->
     try
+        ?DEBUG("About to read ~p rects...~n~n", [Count]),
         read_rectangles(Count, Stream, State, <<>>, [])
     catch
         _:Error ->
@@ -664,7 +665,7 @@ read_rectangles(Missing, <<Head:12/binary, Rest/binary>>,
       H:2/unit:8,
       EncodingCode:4/signed-unit:8>> = Head,
     Box = #box{x = X, y = Y, width = W, height = H},
-    
+    ?DEBUG("Reading the next ~p rects~n", [Missing]),
     if
         X > TotW;
         Y > TotH;
@@ -684,7 +685,7 @@ read_rectangles(Missing, <<Head:12/binary, Rest/binary>>,
                     <<BytesRead/binary, Head/binary, Bytes/binary>>,
                     [Rectangle | Accum]);
 read_rectangles(Missing, Rest, State, BytesRead, Accum) ->
-    ?TRACE("We have just ~p to read but we need ~p rects. more.~n", [Rest, Missing]),
+    ?DEBUG("We have just ~p to read but we need ~p rects more.~n", [Rest, Missing]),
     case erfb_utils:complete(Rest,
                              12, %%NOTE: Rect box length - i.e. we're looking for the next rectangle
                              State#state.socket) of
