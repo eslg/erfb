@@ -64,7 +64,7 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
     {Data, RectBytes, Rest} =
         case ControlBits of
             <<8:4>> -> %%NOTE: pixel value follows, in TPIXEL format. This value applies to all pixels of the rectangle.
-                ?TRACE("Fill Compression~n", []),
+                ?DEBUG("Fill Compression~n", []),
                 {Pixel, MoreBytes} =
                     case bstr:len(NextBytes) of
                         L when L < PixelSize ->
@@ -81,7 +81,7 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
                  Pixel, MoreBytes};
 
             <<9:4>> ->
-                ?TRACE("JPEG Compression~n", []),
+                ?DEBUG("JPEG Compression~n", []),
                 {Length, LengthBytes, MoreBytes} =
                     read_length(NextBytes, Socket),
                 {D, R} =
@@ -100,7 +100,7 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
                  <<LengthBytes/binary, D/binary>>, R};
             
             <<0:1, ReadFilterId:1, ZN:2>> -> %%NOTE: Basic Compression
-                ?TRACE("Basic Compression with zstream ~p~n", [ZN+1]),
+                ?DEBUG("Basic Compression with zstream ~p~n", [ZN+1]),
                 Z = lists:nth(ZN + 1, ZS),
                 {Filter, FilterBytes, MoreBytes} =
                     case ReadFilterId of
@@ -133,6 +133,7 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
                                     ?TRACE("Gradient filter~n", []),
                                     {gradient, FB, M};
                                 FB ->
+                                    ?ERROR("Invalid filter: ~p~n", [FB]),
                                     throw({stop, {invalid_filter, FB}, State})
                             end
                     end,
@@ -148,9 +149,10 @@ read(PF, Box, <<CompCtrl:1/binary-unit:8, NextBytes/binary>>, Socket,
                             PixelSize * Box#box.width * Box#box.height
                     end,
                 
-                ?TRACE("Length: ~p~n", [Length]),
+                ?DEBUG("Length: ~p~n", [Length]),
                 case Length of
-                    Length when Length =< 12 ->
+                    Length when Length < 12 ->
+                        ?DEBUG("Data is less than 12 bytes long: ~p~n", [Length]),
                         {D, R} =
                             case bstr:len(MoreBytes) of
                                 L when L < Length ->

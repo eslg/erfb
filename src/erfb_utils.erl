@@ -25,6 +25,9 @@
 %%       all the bytes it needs from the socket until the string is complete and returns any extra
 %%       byte read if there were enough bytes already in the stream
 -spec get_full_string(binary(), port()) -> {binary(), binary()}.
+get_full_string(<<>>, S) ->
+    ?DEBUG("Getting full string from empty string~n", []),
+    get_full_string(complete(<<>>, 4, S), S);
 get_full_string(<<Length:4/unit:8, Rest/binary>> = String, S) ->
     ?DEBUG("Getting full string from: ~p~n", [String]),
     case bstr:len(Rest) of

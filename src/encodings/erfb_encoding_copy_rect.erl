@@ -36,7 +36,7 @@ read(_PF, Box, <<X:1/unit:16, Y:1/unit:16, Rest/binary>>, _Socket, State) ->
     {ok, {X, Y}, <<X:1/unit:16, Y:1/unit:16>>, Rest, State};
 read(PF, Box, Bytes, Socket, State) ->
     ?DEBUG("CopyRect reader starting for ~p.  Not enough bytes.~n", [Box]),
-    read(PF, Box, erfb_utils:complete(Bytes, 8, Socket, true), Socket, State).
+    read(PF, Box, erfb_utils:complete(Bytes, 4, Socket, true), Socket, State).
 
 %% @hidden
 -spec write(#session{}, #box{}, term(), #state{}) -> {ok, binary(), #state{}} | {error, invalid_data, #state{}}.
