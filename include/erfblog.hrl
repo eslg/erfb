@@ -55,7 +55,7 @@
             _ ->
                 error_logger:error_msg("Exception trying to log a message:~p~n",
                                        [{LOGStr, LOGArgs}])
-        end.
+        end).
 -define(DEBUG(Str, Args), ?LOG(?LOG_LEVEL_DEBUG, info_report,   Str, Args, [])).
 -define(TRACE(Str, Args), ?LOG(?LOG_LEVEL_TRACE, info_report,   Str, Args, [])).
 -define(INFO(Str, Args),  ?LOG(?LOG_LEVEL_INFO,  info_report,   Str, Args, [])).
